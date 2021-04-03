@@ -1,0 +1,2 @@
+# ctest
+C test suite
