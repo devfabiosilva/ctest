@@ -4,15 +4,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <asserts.h>
 
-static void print_assert_false(void *);
-static void print_assert_true(void *);
 static void print_assert_equal_int(void *);
-
-#define ASSERT_EQ_INT_FN "assert_equal_int"
-#define ASSERT_TRUE_FN "assert_true"
-#define ASSERT_FALSE_FN "assert_false"
-
+static void print_assert_equal_long_int(void *);
+static void print_assert_equal_double(void *);
+static void print_assert_equal_byte(void *);
+/*
+static void debug_hex_dump(unsigned char *data, size_t data_size)
+{
+   for (;data_size--;)
+      printf("%02X ", (unsigned char)*(data++));
+}
+*/
 #define END_TITLE "\e[0m"
 #define INITIAL_TITLE "\e[1;3m"
 #define ERROR_CODE "\e[31;1m"
@@ -56,32 +60,69 @@ typedef struct c_test_type_int_t {
    int
    expected,
    result;
-} C_TEST_TYPE_INT;
+} C_TEST_TYPE_INT, C_TEST_TYPE_BOOL;
 
-typedef struct c_test_type_false_t {
+typedef struct c_test_type_long_int_t {
    C_TEST_TYPE_HEADER header;
-   int value;
-} C_TEST_TYPE_FALSE;
 
-typedef struct c_test_type_true_t {
+   long long int
+   expected,
+   result;
+} C_TEST_TYPE_LONG_INT;
+
+typedef struct c_test_type_double_t {
    C_TEST_TYPE_HEADER header;
-   int value;
-} C_TEST_TYPE_TRUE;
 
+   double
+   expected,
+   result;
+} C_TEST_TYPE_DOUBLE;
+
+typedef struct c_test_type_byte_t {
+   C_TEST_TYPE_HEADER header;
+
+   void
+   *expected,
+   *result,
+   *free_on_error_ctx;
+
+   size_t size;
+
+   free_on_error_fn free_on_error_cb;
+} C_TEST_TYPE_BYTE;
+
+#define ASSERT_EQ_INT_FN "assert_equal_int"
+#define ASSERT_TRUE_FN "assert_true"
+#define ASSERT_FALSE_FN "assert_false"
+#define ASSERT_EQUAL_LONG_INT "assert_equal_longint"
+#define ASSERT_EQUAL_DOUBLE "assert_equal_double"
+#define ASSERT_EQUAL_BYTE "assert_equal_byte"
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
-   {1, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_equal_int},
-   {2, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_TRUE), print_assert_true},
-   {3, ASSERT_FALSE_FN, sizeof(C_TEST_TYPE_FALSE), print_assert_false}
+   {0, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_equal_int},
+   {1, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_equal_int},
+   {2, ASSERT_FALSE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_equal_int},
+   {3, ASSERT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_equal_long_int},
+   {4, ASSERT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_equal_double},
+   {5, ASSERT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_equal_byte}
 };
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT _tst_fn_desc[0]
 #define C_TEST_FN_DESCRIPTION_ASSERT_TRUE _tst_fn_desc[1]
 #define C_TEST_FN_DESCRIPTION_ASSERT_FALSE _tst_fn_desc[2]
- 
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_LONG_INT _tst_fn_desc[3]
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_DOUBLE _tst_fn_desc[4]
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_BYTE _tst_fn_desc[5]
+
 typedef union c_test_fn {
    C_TEST_FN_META meta;
    C_TEST_TYPE_INT tst_eq_int;
+   C_TEST_TYPE_BOOL tst_eq_bool;
+   C_TEST_TYPE_LONG_INT tst_eq_longint;
+   C_TEST_TYPE_DOUBLE tst_eq_double;
+   C_TEST_TYPE_BYTE tst_eq_byte;
+/*
    C_TEST_TYPE_TRUE tst_true;
    C_TEST_TYPE_FALSE tst_false;
+*/
 } C_TEST_FN;
 
 void end_tests()
@@ -142,32 +183,6 @@ static void write_title(const char *message, const char *template)
 #define ERROR_MSG(msg) write_title(msg, ERROR_CODE);
 #define SUCCESS_MSG(msg) write_title(msg, SUCCESS_CODE);
 
-static void print_assert_false(void *ctx)
-{
-
-   C_TEST_TYPE_FALSE *type=(C_TEST_TYPE_FALSE *)ctx;
-
-   if (type->value) {
-      ERROR_MSG(type->header.on_error);
-      abort_tests();
-   }
-
-   SUCCESS_MSG(type->header.on_success);
-}
-
-static void print_assert_true(void *ctx)
-{
-
-   C_TEST_TYPE_TRUE *type=(C_TEST_TYPE_TRUE *)ctx;
-
-   if (!type->value) {
-      ERROR_MSG(type->header.on_error);
-      abort_tests();
-   }
-
-   SUCCESS_MSG(type->header.on_success);
-}
-
 static void print_assert_equal_int(void *ctx)
 {
    C_TEST_TYPE_INT *type=(C_TEST_TYPE_INT *)ctx;
@@ -179,6 +194,48 @@ static void print_assert_equal_int(void *ctx)
 
    ERROR_MSG(type->header.on_error)
    abort_tests();
+}
+
+static void print_assert_equal_long_int(void *ctx)
+{
+   C_TEST_TYPE_LONG_INT *type=(C_TEST_TYPE_LONG_INT *)ctx;
+
+   if (type->expected==type->result) {
+      SUCCESS_MSG(type->header.on_success)
+      return;
+   }
+
+   ERROR_MSG(type->header.on_error)
+   abort_tests();
+}
+
+static void print_assert_equal_double(void *ctx)
+{
+   C_TEST_TYPE_DOUBLE *type=(C_TEST_TYPE_DOUBLE *)ctx;
+
+   if (type->expected==type->result) {
+      SUCCESS_MSG(type->header.on_success)
+      return;
+   }
+
+   ERROR_MSG(type->header.on_error)
+   abort_tests();
+}
+
+static void print_assert_equal_byte(void *ctx)
+{
+   C_TEST_TYPE_BYTE *type=(C_TEST_TYPE_BYTE *)ctx;
+
+   if (memcmp(type->expected, type->result, type->size)) {
+      ERROR_MSG(type->header.on_error)
+
+      if (type->free_on_error_cb)
+         type->free_on_error_cb(type->free_on_error_ctx);
+
+      abort_tests();
+   }
+
+   SUCCESS_MSG(type->header.on_success)
 }
 
 static void add_test(void *ctx)
@@ -211,27 +268,27 @@ add_test_EXIT1:
 
 #define ASSERT_PRELOAD \
    type.header.on_error=on_error_msg;\
-   type.header.on_success=on_success;
+   type.header.on_success=on_success;\
+   type.expected=expected;\
+   type.result=result;
 
-void assert_false(int value, const char *on_error_msg, const char *on_success)
+static void assert_equal_bool(
+   int expected,
+   int result,
+   const char *on_error_msg,
+   const char *on_success
+)
 {
-   static C_TEST_TYPE_FALSE type;
+   static C_TEST_TYPE_BOOL type;
 
-   type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE;
+   (result==C_TEST_TRUE)?(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE):(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE);
    ASSERT_PRELOAD
-   type.value=value;
    add_test((void *)&type);
 }
 
-void assert_true(int value, const char *on_error_msg, const char *on_success)
-{
-   static C_TEST_TYPE_TRUE type;
+void assert_false(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(value, C_TEST_FALSE, on_error_msg, on_success); }
 
-   type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE;
-   ASSERT_PRELOAD
-   type.value=value;
-   add_test((void *)&type);
-}
+void assert_true(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(value, C_TEST_TRUE, on_error_msg, on_success); }
 
 void assert_equal_int(int expected, int result, const char *on_error_msg, const char *on_success)
 {
@@ -239,9 +296,45 @@ void assert_equal_int(int expected, int result, const char *on_error_msg, const 
 
    type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT;
    ASSERT_PRELOAD
-   type.expected=expected;
-   type.result=result;
    add_test((void *)&type);
 
+}
+
+void assert_equal_longint(long long int expected, long long int result, const char *on_error_msg, const char *on_success)
+{
+   static C_TEST_TYPE_LONG_INT type;
+
+   type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_EQ_LONG_INT;
+   ASSERT_PRELOAD
+   add_test((void *)&type);
+}
+
+void assert_equal_double(double expected, double result, const char *on_error_msg, const char *on_success)
+{
+   static C_TEST_TYPE_DOUBLE type;
+
+   type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_EQ_DOUBLE;
+   ASSERT_PRELOAD
+   add_test((void *)&type);
+}
+
+void assert_equal_byte(
+   void *expected,
+   void *result,
+   size_t size,
+   free_on_error_fn free_on_error_cb,
+   void *free_on_error_ctx,
+   const char *on_error_msg,
+   const char *on_success
+)
+{
+   static C_TEST_TYPE_BYTE type;
+
+   type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_EQ_BYTE;
+   ASSERT_PRELOAD
+   type.size=size;
+   type.free_on_error_cb=free_on_error_cb;
+   type.free_on_error_ctx=free_on_error_ctx;
+   add_test((void *)&type);
 }
 
