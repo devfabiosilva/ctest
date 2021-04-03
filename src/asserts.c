@@ -119,10 +119,6 @@ typedef union c_test_fn {
    C_TEST_TYPE_LONG_INT tst_eq_longint;
    C_TEST_TYPE_DOUBLE tst_eq_double;
    C_TEST_TYPE_BYTE tst_eq_byte;
-/*
-   C_TEST_TYPE_TRUE tst_true;
-   C_TEST_TYPE_FALSE tst_false;
-*/
 } C_TEST_FN;
 
 void end_tests()
@@ -241,10 +237,13 @@ static void print_assert_equal_byte(void *ctx)
 static void add_test(void *ctx)
 {
    void *p;
+   size_t sz_tmp;
 
    if (_c_test_ptr) {
 
-      if (!(p=realloc(_c_test_ptr, sizeof(C_TEST_HEADER)+sizeof(C_TEST_FN)+(((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN)))) {
+      sz_tmp=(((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN)+sizeof(C_TEST_HEADER);
+
+      if (!(p=realloc(_c_test_ptr, sz_tmp+sizeof(C_TEST_FN)))) {
          printf("\nFatal: Error when realloc test pointer @ %p\n", _c_test_ptr);
          free(_c_test_ptr);
          exit(1);
@@ -253,7 +252,7 @@ static void add_test(void *ctx)
       goto add_test_EXIT1;
    }
 
-   if (!(p=malloc(sizeof(C_TEST_HEADER)+sizeof(C_TEST_FN)))) {
+   if (!(p=malloc((sz_tmp=sizeof(C_TEST_HEADER))+sizeof(C_TEST_FN)))) {
       printf("\nFatal: Error when initialize pointer @ NULL");
       exit(1);
    }
@@ -263,7 +262,8 @@ static void add_test(void *ctx)
    ((C_TEST_HEADER *)p)->initial_timestamp=0UL;
 
 add_test_EXIT1:
-   memcpy((_c_test_ptr=p)+sizeof(C_TEST_HEADER)+((((C_TEST_HEADER *)p)->tests++)*sizeof(C_TEST_FN)), ctx, ((C_TEST_TYPE_HEADER *)ctx)->desc.blk_size);
+   ((C_TEST_HEADER *)p)->tests++;
+   memcpy((_c_test_ptr=p)+sz_tmp, ctx, ((C_TEST_TYPE_HEADER *)ctx)->desc.blk_size);
 }
 
 #define ASSERT_PRELOAD \
