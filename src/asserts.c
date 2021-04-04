@@ -14,6 +14,11 @@ static void print_assert_not_equal_int(void *);
 static void print_assert_not_equal_long_int(void *);
 static void print_assert_not_equal_double(void *);
 static void print_assert_not_equal_byte(void *);
+static void print_assert_equal_string(void *);
+static void print_assert_not_equal_string(void *);
+static void print_assert_equal_string_ignore_case(void *);
+static void print_assert_not_equal_string_ignore_case(void *);
+
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
 {
@@ -95,6 +100,14 @@ typedef struct c_test_type_byte_t {
    free_on_error_fn free_on_error_cb;
 } C_TEST_TYPE_BYTE;
 
+typedef struct c_test_type_string_t {
+   C_TEST_TYPE_HEADER header;
+
+   const char
+   *expected,
+   *result;
+} C_TEST_TYPE_STRING;
+
 #define ASSERT_EQ_INT_FN "assert_equal_int"
 #define ASSERT_TRUE_FN "assert_true"
 #define ASSERT_FALSE_FN "assert_false"
@@ -105,6 +118,10 @@ typedef struct c_test_type_byte_t {
 #define ASSERT_NOT_EQUAL_LONG_INT "assert_not_equal_longint"
 #define ASSERT_NOT_EQUAL_DOUBLE "assert_not_equal_double"
 #define ASSERT_NOT_EQUAL_BYTE "assert_not_equal_byte"
+#define ASSERT_EQUAL_STRING "assert_equal_string"
+#define ASSERT_NOT_EQUAL_STRING "assert_not_equal_string"
+#define ASSERT_EQUAL_STRING_IGNORE_CASE "assert_equal_string_ignore_case"
+#define ASSERT_NOT_EQUAL_STRING_IGNORE_CASE "assert_not_equal_string_ignore_case"
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {0, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_equal_int},
    {1, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_equal_int},
@@ -116,6 +133,10 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {7, ASSERT_NOT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_not_equal_long_int},
    {8, ASSERT_NOT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_not_equal_double},
    {9, ASSERT_NOT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_not_equal_byte},
+   {10, ASSERT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_equal_string},
+   {11, ASSERT_NOT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_not_equal_string},
+   {12, ASSERT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_equal_string_ignore_case},
+   {13, ASSERT_NOT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_not_equal_string_ignore_case}
 };
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT _tst_fn_desc[0]
 #define C_TEST_FN_DESCRIPTION_ASSERT_TRUE _tst_fn_desc[1]
@@ -127,6 +148,10 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_LONG_INT _tst_fn_desc[7]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_DOUBLE _tst_fn_desc[8]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_BYTE _tst_fn_desc[9]
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_STRING _tst_fn_desc[10]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING _tst_fn_desc[11]
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_STRING_IGNORE_CASE _tst_fn_desc[12]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING_IGNORE_CASE _tst_fn_desc[13]
 
 typedef union c_test_fn {
    C_TEST_FN_META meta;
@@ -135,6 +160,7 @@ typedef union c_test_fn {
    C_TEST_TYPE_LONG_INT tst_eq_longint;
    C_TEST_TYPE_DOUBLE tst_eq_double;
    C_TEST_TYPE_BYTE tst_eq_byte;
+   C_TEST_TYPE_STRING tst_eq_string;
 } C_TEST_FN;
 
 void end_tests()
@@ -167,7 +193,7 @@ void begin_tests()
 
    for (i=0;i<((C_TEST_HEADER *)_c_test_ptr)->tests;) {
       q=&p[i++];
-      (q)->meta.cb(q);
+      q->meta.cb(q);
    }
 
 }
@@ -281,6 +307,30 @@ static void print_assert_byte(void *ctx, int is_not_equal)
 static void print_assert_equal_byte(void *ctx) { print_assert_byte(ctx, 0); }
 
 static void print_assert_not_equal_byte(void *ctx) { print_assert_byte(ctx, 1); }
+
+static void print_assert_string(void *ctx, int is_not_equal, int is_ignore_case)
+{
+   C_TEST_TYPE_STRING *type=(C_TEST_TYPE_STRING *)ctx;
+   int tst=(is_ignore_case)?(strcasecmp(type->expected, type->result)):(strcmp(type->expected, type->result));
+
+   if (is_not_equal)
+      (tst)?(tst=0):(tst=-1);
+
+   if (tst) {
+      ERROR_MSG(type->header.on_error)
+      abort_tests();
+   }
+
+   SUCCESS_MSG(type->header.on_success)
+}
+
+static void print_assert_equal_string(void *ctx) { print_assert_string(ctx, 0, 0); }
+
+static void print_assert_not_equal_string(void *ctx) { print_assert_string(ctx, 1, 0); }
+
+static void print_assert_equal_string_ignore_case(void *ctx) { print_assert_string(ctx, 0, 1); }
+
+static void print_assert_not_equal_string_ignore_case(void *ctx) { print_assert_string(ctx, 1, 1); }
 
 static void add_test(void *ctx)
 {
@@ -440,5 +490,40 @@ void assert_not_equal_byte(
 )
 {
    assert_byte(expected, result, size, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_BYTE, free_on_error_cb, free_on_error_ctx, on_error_msg, on_success);
+}
+
+static void assert_string(
+   const char *expected,
+   const char *result,
+   C_TEST_FN_DESCRIPTION *desc,
+   const char *on_error_msg,
+   const char *on_success
+)
+{
+   static C_TEST_TYPE_STRING type;
+
+   memcpy(&type.header.desc, desc, sizeof(type.header.desc));
+   ASSERT_PRELOAD
+   add_test((void *)&type);
+}
+
+void assert_equal_string(const char *expected, const char *result, const char *on_error_msg, const char *on_success)
+{
+   assert_string(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_STRING, on_error_msg, on_success);
+}
+
+void assert_not_equal_string(const char *expected, const char *result, const char *on_error_msg, const char *on_success)
+{
+   assert_string(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING, on_error_msg, on_success);
+}
+
+void assert_equal_string_ignore_case(const char *expected, const char *result, const char *on_error_msg, const char *on_success)
+{
+   assert_string(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_STRING_IGNORE_CASE, on_error_msg, on_success);
+}
+
+void assert_not_equal_string_ignore_case(const char *expected, const char *result, const char *on_error_msg, const char *on_success)
+{
+   assert_string(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING_IGNORE_CASE, on_error_msg, on_success);
 }
 

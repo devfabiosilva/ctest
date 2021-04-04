@@ -20,6 +20,10 @@ int main(int argc, char **argv)
    assert_equal_double(sqrt(2), sq, "Error sqrt", "Success sqrt 3");
    assert_true(strlen(str1)==strlen(str2), "Error. String length does not match.", "Comparing \"str1\" with \"str2\"");
    assert_not_equal_byte((void *)str1, (void *)str2, strlen(str1), NULL, NULL, "Error. String does not match", "String NOT comparation success");
+   assert_equal_string("bitcoin", "bitcoin", "Error comparing two strings", "Comparison word success");
+   assert_equal_string_ignore_case("Bitcoin", "bitcoin", "Error comparing two strings 2", "Comparison word success 2");
+   assert_not_equal_string("bitcoin", "Bitcoin", "Error comparing two strings B", "Comparison word success 3");
+   assert_not_equal_string_ignore_case("Bitcoin", "Chocolate", "Error comparing two strings 3", "Comparison word success 4");
    assert_equal_byte(
       (void *)str1,
       (void *)str2,
