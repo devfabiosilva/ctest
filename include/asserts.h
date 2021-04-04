@@ -29,6 +29,21 @@ void assert_equal_string(const char *, const char *, const char *, const char *)
 void assert_not_equal_string(const char *, const char *, const char *, const char *);
 void assert_equal_string_ignore_case(const char *, const char *, const char *, const char *);
 void assert_not_equal_string_ignore_case(const char *, const char *, const char *, const char *);
+void assert_null(
+   void *,
+   free_on_error_fn,
+   void *,
+   const char *,
+   const char *
+);
+void assert_not_null(
+   void *,
+   free_on_error_fn,
+   void *,
+   const char *,
+   const char *
+);
 void begin_tests();
 void end_tests();
+void abort_tests();
 

@@ -18,6 +18,7 @@ static void print_assert_equal_string(void *);
 static void print_assert_not_equal_string(void *);
 static void print_assert_equal_string_ignore_case(void *);
 static void print_assert_not_equal_string_ignore_case(void *);
+static void print_assert_nullable(void *ctx);
 
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
@@ -41,6 +42,7 @@ void *_c_test_ptr=NULL;
 typedef struct c_test_header {
    uint32_t signature;
    size_t tests;
+   size_t next;
    uint64_t initial_timestamp;
 } C_TEST_HEADER;
 
@@ -97,7 +99,8 @@ typedef struct c_test_type_byte_t {
 
    size_t size;
 
-   free_on_error_fn free_on_error_cb;
+   free_on_error_fn
+   free_on_error_cb;
 } C_TEST_TYPE_BYTE;
 
 typedef struct c_test_type_string_t {
@@ -107,6 +110,20 @@ typedef struct c_test_type_string_t {
    *expected,
    *result;
 } C_TEST_TYPE_STRING;
+
+typedef struct c_test_type_nullable_t {
+   C_TEST_TYPE_HEADER header;
+
+   int
+   should_be_null;
+
+   void
+   *pointer,
+   *free_on_error_ctx;
+
+   free_on_error_fn
+   free_on_error_cb;
+} C_TEST_TYPE_NULLABLE;
 
 #define ASSERT_EQ_INT_FN "assert_equal_int"
 #define ASSERT_TRUE_FN "assert_true"
@@ -122,6 +139,8 @@ typedef struct c_test_type_string_t {
 #define ASSERT_NOT_EQUAL_STRING "assert_not_equal_string"
 #define ASSERT_EQUAL_STRING_IGNORE_CASE "assert_equal_string_ignore_case"
 #define ASSERT_NOT_EQUAL_STRING_IGNORE_CASE "assert_not_equal_string_ignore_case"
+#define ASSERT_NULL "assert_null"
+#define ASSERT_NOT_NULL "assert_not_null"
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {0, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_equal_int},
    {1, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_equal_int},
@@ -136,7 +155,9 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {10, ASSERT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_equal_string},
    {11, ASSERT_NOT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_not_equal_string},
    {12, ASSERT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_equal_string_ignore_case},
-   {13, ASSERT_NOT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_not_equal_string_ignore_case}
+   {13, ASSERT_NOT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_not_equal_string_ignore_case},
+   {14, ASSERT_NULL, sizeof(C_TEST_TYPE_NULLABLE), print_assert_nullable},
+   {15, ASSERT_NOT_NULL, sizeof(C_TEST_TYPE_NULLABLE), print_assert_nullable}
 };
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT _tst_fn_desc[0]
 #define C_TEST_FN_DESCRIPTION_ASSERT_TRUE _tst_fn_desc[1]
@@ -152,6 +173,8 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING _tst_fn_desc[11]
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_STRING_IGNORE_CASE _tst_fn_desc[12]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING_IGNORE_CASE _tst_fn_desc[13]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NULL _tst_fn_desc[14]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_NULL _tst_fn_desc[15]
 
 typedef union c_test_fn {
    C_TEST_FN_META meta;
@@ -161,6 +184,7 @@ typedef union c_test_fn {
    C_TEST_TYPE_DOUBLE tst_eq_double;
    C_TEST_TYPE_BYTE tst_eq_byte;
    C_TEST_TYPE_STRING tst_eq_string;
+   C_TEST_TYPE_NULLABLE tst_eq_null;
 } C_TEST_FN;
 
 void end_tests()
@@ -191,10 +215,12 @@ void begin_tests()
 
    p=((C_TEST_FN *)(_c_test_ptr+sizeof(C_TEST_HEADER)));
 
-   for (i=0;i<((C_TEST_HEADER *)_c_test_ptr)->tests;) {
+   for (i=((C_TEST_HEADER *)_c_test_ptr)->next;i<((C_TEST_HEADER *)_c_test_ptr)->tests;) {
       q=&p[i++];
       q->meta.cb(q);
    }
+
+   ((C_TEST_HEADER *)_c_test_ptr)->next=i;
 
 }
 
@@ -332,6 +358,23 @@ static void print_assert_equal_string_ignore_case(void *ctx) { print_assert_stri
 
 static void print_assert_not_equal_string_ignore_case(void *ctx) { print_assert_string(ctx, 1, 1); }
 
+static void print_assert_nullable(void *ctx)
+{
+   C_TEST_TYPE_NULLABLE *type=(C_TEST_TYPE_NULLABLE *)ctx;
+   int error=(type->should_be_null)?(type->pointer!=NULL):(type->pointer==NULL);
+
+   if (error) {
+      ERROR_MSG(type->header.on_error)
+
+      if (type->free_on_error_cb)
+         type->free_on_error_cb(type->free_on_error_ctx);
+
+      abort_tests();
+   }
+
+   SUCCESS_MSG(type->header.on_success)
+}
+
 static void add_test(void *ctx)
 {
    void *p;
@@ -357,6 +400,7 @@ static void add_test(void *ctx)
 
    ((C_TEST_HEADER *)p)->signature=C_TEST_HEADER_SIGNATURE;
    ((C_TEST_HEADER *)p)->tests=0U;
+   ((C_TEST_HEADER *)p)->next=0U;
    ((C_TEST_HEADER *)p)->initial_timestamp=0UL;
 
 add_test_EXIT1:
@@ -525,5 +569,48 @@ void assert_equal_string_ignore_case(const char *expected, const char *result, c
 void assert_not_equal_string_ignore_case(const char *expected, const char *result, const char *on_error_msg, const char *on_success)
 {
    assert_string(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING_IGNORE_CASE, on_error_msg, on_success);
+}
+
+static void assert_nullable(
+   void *result,
+   C_TEST_FN_DESCRIPTION *desc,
+   free_on_error_fn free_on_error_cb,
+   void *free_on_error_ctx,
+   const char *on_error_msg,
+   const char *on_success
+)
+{
+   static C_TEST_TYPE_NULLABLE type;
+
+   memcpy(&type.header.desc, desc, sizeof(type.header.desc));
+   type.should_be_null=(desc==&C_TEST_FN_DESCRIPTION_ASSERT_NULL);
+   type.header.on_error=on_error_msg;
+   type.header.on_success=on_success;
+   type.pointer=result;
+   type.free_on_error_cb=free_on_error_cb;
+   type.free_on_error_ctx=free_on_error_ctx;
+   add_test((void *)&type);
+}
+
+void assert_null(
+   void *result,
+   free_on_error_fn free_on_error_cb,
+   void *free_on_error_ctx,
+   const char *on_error_msg,
+   const char *on_success
+)
+{
+   assert_nullable(result, &C_TEST_FN_DESCRIPTION_ASSERT_NULL, free_on_error_cb, free_on_error_ctx, on_error_msg, on_success);
+}
+
+void assert_not_null(
+   void *result,
+   free_on_error_fn free_on_error_cb,
+   void *free_on_error_ctx,
+   const char *on_error_msg,
+   const char *on_success
+)
+{
+   assert_nullable(result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_NULL, free_on_error_cb, free_on_error_ctx, on_error_msg, on_success);
 }
 
