@@ -3,6 +3,11 @@
 #include <asserts.h>
 #include <string.h>
 
+void cb_func_on_error(void *ctx)
+{
+   printf("\nExiting on error test\n\t%s\n", (const char *)ctx);
+}
+
 int main(int argc, char **argv)
 {
    double sq=sqrt(2.0);
@@ -15,7 +20,15 @@ int main(int argc, char **argv)
    assert_equal_double(sqrt(2), sq, "Error sqrt", "Success sqrt 3");
    assert_true(strlen(str1)==strlen(str2), "Error. String length does not match.", "Comparing \"str1\" with \"str2\"");
    assert_not_equal_byte((void *)str1, (void *)str2, strlen(str1), NULL, NULL, "Error. String does not match", "String NOT comparation success");
-   assert_equal_byte((void *)str1, (void *)str2, strlen(str1), NULL, NULL, "Error. String does not match", "String comparation success");
+   assert_equal_byte(
+      (void *)str1,
+      (void *)str2,
+      strlen(str1),
+      cb_func_on_error,
+      (void *)"Testing on error",
+      "Error. String does not match",
+      "String comparation success"
+   );
    begin_tests();
    end_tests();
    return 0;

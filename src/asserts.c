@@ -200,11 +200,10 @@ static void print_assert_int(void *ctx, int is_not_equal)
    C_TEST_TYPE_INT *type=(C_TEST_TYPE_INT *)ctx;
 
    if (is_not_equal) {
-      if (type->expected!=type->result) {
-         SUCCESS_MSG(type->header.on_success)
-         return;
-      }
+      if (type->expected!=type->result)
+         goto print_assert_int_EXIT;
    } else if (type->expected==type->result) {
+print_assert_int_EXIT:
       SUCCESS_MSG(type->header.on_success)
       return;
    }
@@ -222,11 +221,10 @@ static void print_assert_longint(void *ctx, int is_not_equal)
    C_TEST_TYPE_LONG_INT *type=(C_TEST_TYPE_LONG_INT *)ctx;
 
    if (is_not_equal) {
-      if (type->expected!=type->result) {
-         SUCCESS_MSG(type->header.on_success)
-         return;
-      }
+      if (type->expected!=type->result)
+         goto print_assert_longint_EXIT1;
    } else if (type->expected==type->result) {
+print_assert_longint_EXIT1:
       SUCCESS_MSG(type->header.on_success)
       return;
    }
@@ -244,11 +242,10 @@ static void print_assert_double(void *ctx, int is_not_equal)
    C_TEST_TYPE_DOUBLE *type=(C_TEST_TYPE_DOUBLE *)ctx;
 
    if (is_not_equal) {
-      if (type->expected!=type->result) {
-         SUCCESS_MSG(type->header.on_success)
-         return;
-      }
+      if (type->expected!=type->result)
+         goto print_assert_double_EXIT1;
    } else if (type->expected==type->result) {
+print_assert_double_EXIT1:
       SUCCESS_MSG(type->header.on_success)
       return;
    }
