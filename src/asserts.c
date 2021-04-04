@@ -470,7 +470,7 @@ void assert_not_equal_longint(long long int expected, long long int result, cons
    assert_longint(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_LONG_INT, on_error_msg, on_success);
 }
 
-static void assert_double(int expected, int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
+static void assert_double(double expected, double result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
 {
    static C_TEST_TYPE_DOUBLE type;
 
