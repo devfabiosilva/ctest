@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <asserts.h>
 
 static void print_assert_equal_int(void *);
@@ -187,43 +188,6 @@ typedef union c_test_fn {
    C_TEST_TYPE_NULLABLE tst_eq_null;
 } C_TEST_FN;
 
-void end_tests()
-{
-   if (_c_test_ptr) {
-      memset(_c_test_ptr+sizeof(C_TEST_HEADER), 0, (((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN));
-      memset(_c_test_ptr, 0, sizeof(C_TEST_HEADER));
-      free(_c_test_ptr);
-      _c_test_ptr=NULL;
-   }
-}
-
-void abort_tests()
-{
-   end_tests();
-   exit(1);
-}
-
-void begin_tests()
-{
-   C_TEST_FN *p, *q;
-   size_t i;
-
-   if (!_c_test_ptr) {
-      printf("\nError: No test found. You need to add test\nExiting...\n");
-      exit(1);
-   }
-
-   p=((C_TEST_FN *)(_c_test_ptr+sizeof(C_TEST_HEADER)));
-
-   for (i=((C_TEST_HEADER *)_c_test_ptr)->next;i<((C_TEST_HEADER *)_c_test_ptr)->tests;) {
-      q=&p[i++];
-      q->meta.cb(q);
-   }
-
-   ((C_TEST_HEADER *)_c_test_ptr)->next=i;
-
-}
-
 static void write_title(const char *message, const char *template)
 {
    char *msg;
@@ -243,9 +207,76 @@ static void write_title(const char *message, const char *template)
    free(msg);
 }
 
+static void write_title_fmt(const char *template, const char *fmt, ...)
+{
+   char *msg;
+   va_list args;
+
+   if (!fmt) {
+      printf("Missing format at \"write_title_fmt\"");
+      abort_tests();
+   }
+
+   va_start(args, fmt);
+   if (vasprintf(&msg, fmt, args)<0) {
+      printf("Message error at \"write_title_fmt\"");
+      va_end(args);
+      abort_tests();
+   }
+   va_end(args);
+
+   write_title(msg, template);
+
+   free(msg);
+}
+
 #define TITLE_MSG(msg) write_title(msg, INITIAL_TITLE);
 #define ERROR_MSG(msg) write_title(msg, ERROR_CODE);
 #define SUCCESS_MSG(msg) write_title(msg, SUCCESS_CODE);
+
+#define TITLE_MSG_FMT(...) write_title_fmt(INITIAL_TITLE, __VA_ARGS__);
+
+void end_tests()
+{
+   if (_c_test_ptr) {
+      memset(_c_test_ptr+sizeof(C_TEST_HEADER), 0, (((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN));
+      memset(_c_test_ptr, 0, sizeof(C_TEST_HEADER));
+      free(_c_test_ptr);
+      _c_test_ptr=NULL;
+   }
+}
+
+void abort_tests()
+{
+   end_tests();
+   exit(1);
+}
+
+void begin_tests()
+{
+   C_TEST_FN *p, *q;
+   size_t i, total;
+
+   if (!_c_test_ptr) {
+      printf("\nError: No test found. You need to add test\nExiting...\n");
+      exit(1);
+   }
+
+   p=((C_TEST_FN *)(_c_test_ptr+sizeof(C_TEST_HEADER)));
+   total=((C_TEST_HEADER *)_c_test_ptr)->tests;
+
+   for (i=((C_TEST_HEADER *)_c_test_ptr)->next;i<total;) {
+      q=&p[i++];
+      TITLE_MSG_FMT("Testing \"%s\" ...", q->meta.fn_name);
+      q->meta.cb(q);
+      TITLE_MSG_FMT("progress: (%d%)", (i*100)/total);
+   }
+
+   ((C_TEST_HEADER *)_c_test_ptr)->next=i;
+
+   TITLE_MSG("*** Test finished success ***")
+
+}
 
 static void print_assert_int(void *ctx, int is_not_equal)
 {
@@ -398,14 +429,16 @@ static void add_test(void *ctx)
       exit(1);
    }
 
+   TITLE_MSG("Begin adding test ...")
+
    ((C_TEST_HEADER *)p)->signature=C_TEST_HEADER_SIGNATURE;
    ((C_TEST_HEADER *)p)->tests=0U;
    ((C_TEST_HEADER *)p)->next=0U;
    ((C_TEST_HEADER *)p)->initial_timestamp=0UL;
 
 add_test_EXIT1:
-   ((C_TEST_HEADER *)p)->tests++;
    memcpy((_c_test_ptr=p)+sz_tmp, ctx, ((C_TEST_TYPE_HEADER *)ctx)->desc.blk_size);
+   TITLE_MSG_FMT("Adding test instance \"%s\" (%d)", ((C_TEST_FN_DESCRIPTION *)ctx)->fn_name, ++((C_TEST_HEADER *)p)->tests)
 }
 
 #define ASSERT_PRELOAD \

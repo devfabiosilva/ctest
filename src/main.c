@@ -26,7 +26,7 @@ int main(int argc, char **argv)
    assert_not_equal_string_ignore_case("Bitcoin", "Chocolate", "Error comparing two strings 3", "Comparison word success 4");
    assert_null(NULL, NULL, NULL, "Error assertion. Should be null", "Pointer is NULL. SUCCESS");
    assert_not_null((void *)"This is an pointer containing a string", NULL, NULL, "Pointer should be NOT null. Aborting", "Non null pointer success");
-   assert_equal_byte(
+   assert_not_equal_byte(
       (void *)str1,
       (void *)str2,
       strlen(str1),
