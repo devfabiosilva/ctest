@@ -5,8 +5,8 @@ void assert_equal_int(int, int, const char *, const char *);
 void assert_not_equal_int(int, int, const char *, const char *);
 void assert_equal_longint(long long int, long long int, const char *, const char *);
 void assert_not_equal_longint(long long int, long long int, const char *, const char *);
-void assert_equal_double(double, double, const char *, const char *);
-void assert_not_equal_double(double, double, const char *, const char *);
+void assert_equal_double(double, double, double, const char *, const char *);
+void assert_not_equal_double(double, double, double, const char *, const char *);
 void assert_equal_byte(
    void *,
    void *,
