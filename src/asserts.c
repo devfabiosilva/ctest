@@ -192,8 +192,10 @@ typedef union c_test_fn {
    C_TEST_TYPE_NULLABLE tst_eq_null;
 } C_TEST_FN;
 
+#define PRINTF_FINAL_FMT printf("%.*s", err, msg);
 static void write_title(const char *message, const char *template)
 {
+   int err;
    char *msg;
 
    if (!message) {
@@ -201,19 +203,20 @@ static void write_title(const char *message, const char *template)
       abort_tests();
    }
 
-   if (asprintf(&msg, "%s%s%s\n", template, message, END_TITLE)<0) {
+   if ((err=asprintf(&msg, "%s%s%s\n", template, message, END_TITLE))<0) {
       printf("Message error");
       abort_tests();
    }
 
-   printf("%s", msg);
+   PRINTF_FINAL_FMT
 
    free(msg);
 }
 
 static void write_title_fmt(const char *template, const char *fmt, ...)
 {
-   char *msg;
+   int err;
+   char *msg_fmt, *msg;
    va_list args;
 
    if (!fmt) {
@@ -222,14 +225,25 @@ static void write_title_fmt(const char *template, const char *fmt, ...)
    }
 
    va_start(args, fmt);
-   if (vasprintf(&msg, fmt, args)<0) {
-      printf("Message error at \"write_title_fmt\"");
-      va_end(args);
-      abort_tests();
-   }
+   err=vasprintf(&msg_fmt, fmt, args);
    va_end(args);
 
-   write_title(msg, template);
+   if (err<0) {
+      printf("Message format error at \"write_title_fmt\"");
+      free(msg_fmt);
+      abort_tests();
+   }
+
+   err=asprintf(&msg, "%s%.*s%s\n", template, err, msg_fmt, END_TITLE);
+
+   free(msg_fmt);
+
+   if (err<0) {
+      printf("Final message error at \"write_title_fmt\"");
+      abort_tests();
+   }
+
+   PRINTF_FINAL_FMT
 
    free(msg);
 }
