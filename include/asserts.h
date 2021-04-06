@@ -1,4 +1,5 @@
 typedef void (*free_on_error_fn)(void *);
+typedef void (*header_on_cb)(void *);
 void assert_true(int, const char *, const char *);
 void assert_false(int, const char *, const char *);
 void assert_equal_int(int, int, const char *, const char *);
@@ -43,6 +44,8 @@ void assert_not_null(
    const char *,
    const char *
 );
+void on_add_test(header_on_cb);
+void rm_on_add_test();
 void begin_tests();
 void end_tests();
 void abort_tests();

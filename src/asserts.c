@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <asserts.h>
+#include <time.h>
 #include <math.h>
 
 static void print_assert_equal_int(void *);
@@ -40,11 +41,25 @@ static void debug_hex_dump(unsigned char *data, size_t data_size)
 
 void *_c_test_ptr=NULL;
 
+typedef void (*header_on_cb)(void *);
+
 typedef struct c_test_header {
    uint32_t signature;
-   size_t tests;
-   size_t next;
-   uint64_t initial_timestamp;
+
+   size_t
+   tests,
+   next;
+
+   uint64_t
+   initial_timestamp,
+   final_timestamp;
+
+   header_on_cb
+   on_add_test_fn,
+   on_begin_test_fn,
+   on_end_test_fn,
+   on_abort_fn;
+
 } C_TEST_HEADER;
 
 typedef struct c_test_fn_description {
@@ -257,7 +272,9 @@ static void write_title_fmt(const char *template, const char *fmt, ...)
 void end_tests()
 {
    if (_c_test_ptr) {
-      memset(_c_test_ptr+sizeof(C_TEST_HEADER), 0, (((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN));
+      if (((C_TEST_HEADER *)_c_test_ptr)->tests)
+         memset(_c_test_ptr+sizeof(C_TEST_HEADER), 0, (((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN));
+
       memset(_c_test_ptr, 0, sizeof(C_TEST_HEADER));
       free(_c_test_ptr);
       _c_test_ptr=NULL;
@@ -274,6 +291,7 @@ void begin_tests()
 {
    C_TEST_FN *p, *q;
    size_t i, total;
+   time_t t;
 
    if (!_c_test_ptr) {
       printf("\nError: No test found. You need to add test\nExiting...\n");
@@ -282,6 +300,9 @@ void begin_tests()
 
    p=((C_TEST_FN *)(_c_test_ptr+sizeof(C_TEST_HEADER)));
    total=((C_TEST_HEADER *)_c_test_ptr)->tests;
+   ((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp=(uint64_t)(t=time(NULL));
+
+   TITLE_MSG_FMT("*** BEGIN TESTS ***\nAt: %s", ctime(&t))
 
    for (i=((C_TEST_HEADER *)_c_test_ptr)->next;i<total;) {
       q=&p[i++];
@@ -292,8 +313,62 @@ void begin_tests()
 
    ((C_TEST_HEADER *)_c_test_ptr)->next=i;
 
-   TITLE_MSG("*** Test finished success ***")
+   ((C_TEST_HEADER *)_c_test_ptr)->final_timestamp=(uint64_t)(t=time(NULL));
 
+   TITLE_MSG_FMT("*** END TESTS ***\nAt: %s", ctime(&t))
+   TITLE_MSG_FMT("Total time: %llu\n", (uint64_t)t-((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp)
+}
+
+#define C_TEST_INITIAL_ADD \
+   ((C_TEST_HEADER *)p)->signature=C_TEST_HEADER_SIGNATURE;\
+   ((C_TEST_HEADER *)p)->tests=0U;\
+   ((C_TEST_HEADER *)p)->next=0U;\
+   ((C_TEST_HEADER *)p)->initial_timestamp=0UL;\
+   ((C_TEST_HEADER *)p)->final_timestamp=0UL;
+
+#define C_TEST_ON_ADD_FN(fn) ((C_TEST_HEADER *)p)->on_add_test_fn=fn;
+#define C_TEST_ON_BEGIN_FN(fn) ((C_TEST_HEADER *)p)->on_begin_test_fn=fn;
+#define C_TEST_ON_END_FN(fn) ((C_TEST_HEADER *)p)->on_end_test_fn=fn;
+#define C_TEST_ON_ABORT_FN(fn) ((C_TEST_HEADER *)p)->on_abort_fn=fn;
+
+#define C_TEST_INITIAL_ADD_FN_ALL_NULL \
+   C_TEST_ON_ADD_FN(NULL) \
+   C_TEST_ON_BEGIN_FN(NULL) \
+   C_TEST_ON_END_FN(NULL) \
+   C_TEST_ON_ABORT_FN(NULL)
+
+void on_add_test(header_on_cb fn)
+{
+   #define p _c_test_ptr
+
+   if (!fn) {
+      ERROR_MSG("Fatal: on_add_test missing callback function")
+      abort_tests();
+   }
+
+   if (!p)
+      if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
+         ERROR_MSG("Fatal: on_add_test missing callback function")
+         abort_tests();
+      }
+
+   C_TEST_INITIAL_ADD
+   C_TEST_ON_ADD_FN(fn)
+   C_TEST_ON_BEGIN_FN(NULL)
+   C_TEST_ON_END_FN(NULL)
+   C_TEST_ON_ABORT_FN(NULL)
+
+   #undef p
+}
+
+void rm_on_add_test()
+{
+   #define p _c_test_ptr
+
+   if (p)
+      C_TEST_ON_ADD_FN(NULL)
+
+   #undef p
 }
 
 static void print_assert_int(void *ctx, int is_not_equal)
@@ -447,14 +522,15 @@ static void add_test(void *ctx)
 
    TITLE_MSG("Begin adding test ...")
 
-   ((C_TEST_HEADER *)p)->signature=C_TEST_HEADER_SIGNATURE;
-   ((C_TEST_HEADER *)p)->tests=0U;
-   ((C_TEST_HEADER *)p)->next=0U;
-   ((C_TEST_HEADER *)p)->initial_timestamp=0UL;
+   C_TEST_INITIAL_ADD
+   C_TEST_INITIAL_ADD_FN_ALL_NULL
 
 add_test_EXIT1:
    memcpy((_c_test_ptr=p)+sz_tmp, ctx, ((C_TEST_TYPE_HEADER *)ctx)->desc.blk_size);
    TITLE_MSG_FMT("Adding test instance \"%s\" (%d)", ((C_TEST_FN_DESCRIPTION *)ctx)->fn_name, ++((C_TEST_HEADER *)p)->tests)
+
+   if (((C_TEST_HEADER *)p)->on_add_test_fn)
+      ((C_TEST_HEADER *)p)->on_add_test_fn(ctx);
 }
 
 #define ASSERT_PRELOAD \
