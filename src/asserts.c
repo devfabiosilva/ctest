@@ -56,6 +56,7 @@ typedef struct c_test_header {
 
    header_on_cb
    on_add_test_fn,
+   on_test_fn,
    on_begin_test_fn,
    on_end_test_fn,
    on_abort_fn;
@@ -283,6 +284,9 @@ void end_tests()
 
 void abort_tests()
 {
+   if (((C_TEST_HEADER *)_c_test_ptr)->on_abort_fn)
+      ((C_TEST_HEADER *)_c_test_ptr)->on_abort_fn(_c_test_ptr);
+
    end_tests();
    exit(1);
 }
@@ -292,6 +296,7 @@ void begin_tests()
    C_TEST_FN *p, *q;
    size_t i, total;
    time_t t;
+   const char *title_msg;
 
    if (!_c_test_ptr) {
       printf("\nError: No test found. You need to add test\nExiting...\n");
@@ -302,13 +307,18 @@ void begin_tests()
    total=((C_TEST_HEADER *)_c_test_ptr)->tests;
    ((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp=(uint64_t)(t=time(NULL));
 
-   TITLE_MSG_FMT("*** BEGIN TESTS ***\nAt: %s", ctime(&t))
+   ((i=((C_TEST_HEADER *)_c_test_ptr)->next))?(title_msg="*** RESUMING TESTS ***\nAt: %s"):(title_msg="*** BEGIN TESTS ***\nAt: %s");
 
-   for (i=((C_TEST_HEADER *)_c_test_ptr)->next;i<total;) {
+   TITLE_MSG_FMT(title_msg, ctime(&t))
+
+   if (((C_TEST_HEADER *)_c_test_ptr)->on_begin_test_fn)
+      ((C_TEST_HEADER *)_c_test_ptr)->on_begin_test_fn(_c_test_ptr);
+
+   for (;i<total;) {
       q=&p[i++];
       TITLE_MSG_FMT("Testing \"%s\" ...", q->meta.fn_name);
       q->meta.cb(q);
-      TITLE_MSG_FMT("progress: (%d%)", (i*100)/total);
+      TITLE_MSG_FMT("progress: (%d %)", (i*100)/total);
    }
 
    ((C_TEST_HEADER *)_c_test_ptr)->next=i;
@@ -317,6 +327,10 @@ void begin_tests()
 
    TITLE_MSG_FMT("*** END TESTS ***\nAt: %s", ctime(&t))
    TITLE_MSG_FMT("Total time: %llu\n", (uint64_t)t-((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp)
+
+   if (((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn)
+      ((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn(_c_test_ptr);
+
 }
 
 #define C_TEST_INITIAL_ADD \
@@ -327,12 +341,14 @@ void begin_tests()
    ((C_TEST_HEADER *)p)->final_timestamp=0UL;
 
 #define C_TEST_ON_ADD_FN(fn) ((C_TEST_HEADER *)p)->on_add_test_fn=fn;
+#define C_TEST_ON_TEST_FN(fn) ((C_TEST_HEADER *)p)->on_test_fn=fn;
 #define C_TEST_ON_BEGIN_FN(fn) ((C_TEST_HEADER *)p)->on_begin_test_fn=fn;
 #define C_TEST_ON_END_FN(fn) ((C_TEST_HEADER *)p)->on_end_test_fn=fn;
 #define C_TEST_ON_ABORT_FN(fn) ((C_TEST_HEADER *)p)->on_abort_fn=fn;
 
 #define C_TEST_INITIAL_ADD_FN_ALL_NULL \
    C_TEST_ON_ADD_FN(NULL) \
+   C_TEST_ON_TEST_FN(NULL) \
    C_TEST_ON_BEGIN_FN(NULL) \
    C_TEST_ON_END_FN(NULL) \
    C_TEST_ON_ABORT_FN(NULL)
@@ -346,17 +362,22 @@ void on_add_test(header_on_cb fn)
       abort_tests();
    }
 
-   if (!p)
+   if (!p) {
       if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
-         ERROR_MSG("Fatal: on_add_test missing callback function")
+         ERROR_MSG("Fatal: on_add_test missing callback function. Can't alloc memory")
          abort_tests();
       }
 
-   C_TEST_INITIAL_ADD
+      C_TEST_INITIAL_ADD
+
+      C_TEST_ON_BEGIN_FN(NULL)
+      C_TEST_ON_TEST_FN(NULL)
+      C_TEST_ON_END_FN(NULL)
+      C_TEST_ON_ABORT_FN(NULL)
+
+   }
+
    C_TEST_ON_ADD_FN(fn)
-   C_TEST_ON_BEGIN_FN(NULL)
-   C_TEST_ON_END_FN(NULL)
-   C_TEST_ON_ABORT_FN(NULL)
 
    #undef p
 }
@@ -371,21 +392,185 @@ void rm_on_add_test()
    #undef p
 }
 
+void on_begin_test(header_on_cb fn)
+{
+   #define p _c_test_ptr
+
+   if (!fn) {
+      ERROR_MSG("Fatal: on_begin_test missing callback function")
+      abort_tests();
+   }
+
+   if (!p) {
+      if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
+         ERROR_MSG("Fatal: on_begin_test missing callback function. Can't alloc memory")
+         abort_tests();
+      }
+
+      C_TEST_INITIAL_ADD
+
+      C_TEST_ON_ADD_FN(NULL)
+      C_TEST_ON_TEST_FN(NULL)
+      C_TEST_ON_END_FN(NULL)
+      C_TEST_ON_ABORT_FN(NULL)
+
+   }
+
+   C_TEST_ON_BEGIN_FN(fn)
+
+   #undef p
+}
+
+void rm_begin_test()
+{
+   #define p _c_test_ptr
+
+   if (p)
+      C_TEST_ON_BEGIN_FN(NULL)
+
+   #undef p
+}
+
+void on_test(header_on_cb fn)
+{
+   #define p _c_test_ptr
+
+   if (!fn) {
+      ERROR_MSG("Fatal: on_test missing callback function")
+      abort_tests();
+   }
+
+   if (!p) {
+      if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
+         ERROR_MSG("Fatal: on_test missing callback function. Can't alloc memory")
+         abort_tests();
+      }
+
+      C_TEST_INITIAL_ADD
+
+      C_TEST_ON_ADD_FN(NULL)
+      C_TEST_ON_BEGIN_FN(NULL)
+      C_TEST_ON_END_FN(NULL)
+      C_TEST_ON_ABORT_FN(NULL)
+
+   }
+
+   C_TEST_ON_TEST_FN(fn)
+
+   #undef p
+}
+
+void rm_on_test()
+{
+   #define p _c_test_ptr
+
+   if (p)
+      C_TEST_ON_TEST_FN(NULL)
+
+   #undef p
+}
+
+void on_end_test(header_on_cb fn)
+{
+   #define p _c_test_ptr
+
+   if (!fn) {
+      ERROR_MSG("Fatal: on_end_test missing callback function")
+      abort_tests();
+   }
+
+   if (!p) {
+      if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
+         ERROR_MSG("Fatal: on_end_test missing callback function. Can't alloc memory")
+         abort_tests();
+      }
+
+      C_TEST_INITIAL_ADD
+
+      C_TEST_ON_ADD_FN(NULL)
+      C_TEST_ON_TEST_FN(NULL)
+      C_TEST_ON_BEGIN_FN(NULL)
+      C_TEST_ON_ABORT_FN(NULL)
+
+   }
+
+   C_TEST_ON_END_FN(fn)
+
+   #undef p
+}
+
+void rm_on_end_test()
+{
+   #define p _c_test_ptr
+
+   if (p)
+      C_TEST_ON_END_FN(NULL)
+
+   #undef p
+}
+
+void on_obort(header_on_cb fn)
+{
+   #define p _c_test_ptr
+
+   if (!fn) {
+      ERROR_MSG("Fatal: on_obort missing callback function")
+      abort_tests();
+   }
+
+   if (!p) {
+      if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
+         ERROR_MSG("Fatal: on_obort missing callback function. Can't alloc memory")
+         abort_tests();
+      }
+
+      C_TEST_INITIAL_ADD
+
+      C_TEST_ON_ADD_FN(NULL)
+      C_TEST_ON_TEST_FN(NULL)
+      C_TEST_ON_BEGIN_FN(NULL)
+      C_TEST_ON_END_FN(NULL)
+
+   }
+
+   C_TEST_ON_ABORT_FN(fn)
+
+   #undef p
+}
+
+void rm_abort()
+{
+   #define p _c_test_ptr
+
+   if (p)
+      C_TEST_ON_ABORT_FN(NULL)
+
+   #undef p
+}
+
+#define PRINT_CALLBACK \
+   if (((C_TEST_HEADER *)_c_test_ptr)->on_test_fn)\
+      ((C_TEST_HEADER *)_c_test_ptr)->on_test_fn(ctx);
+
 static void print_assert_int(void *ctx, int is_not_equal)
 {
    C_TEST_TYPE_INT *type=(C_TEST_TYPE_INT *)ctx;
+   int error;
 
-   if (is_not_equal) {
-      if (type->expected!=type->result)
-         goto print_assert_int_EXIT;
-   } else if (type->expected==type->result) {
-print_assert_int_EXIT:
-      SUCCESS_MSG(type->header.on_success)
-      return;
+   PRINT_CALLBACK
+
+   error=(type->expected!=type->result);
+
+   if (is_not_equal)
+      error=!error;
+
+   if (error) {
+      ERROR_MSG(type->header.on_error)
+      abort_tests();
    }
 
-   ERROR_MSG(type->header.on_error)
-   abort_tests();
+   SUCCESS_MSG(type->header.on_success)
+
 }
 
 static void print_assert_equal_int(void *ctx) { print_assert_int(ctx, 0); }
@@ -395,6 +580,8 @@ static void print_assert_not_equal_int(void *ctx) { print_assert_int(ctx, 1); }
 static void print_assert_longint(void *ctx, int is_not_equal)
 {
    C_TEST_TYPE_LONG_INT *type=(C_TEST_TYPE_LONG_INT *)ctx;
+
+   PRINT_CALLBACK
 
    if (is_not_equal) {
       if (type->expected!=type->result)
@@ -418,6 +605,8 @@ static void print_assert_double(void *ctx)
    C_TEST_TYPE_DOUBLE *type=(C_TEST_TYPE_DOUBLE *)ctx;
    int error=0;
 
+   PRINT_CALLBACK
+
    if (fabs(type->expected-type->result)>fabs(type->delta))
       error=1;
 
@@ -435,7 +624,11 @@ static void print_assert_double(void *ctx)
 static void print_assert_byte(void *ctx, int is_not_equal)
 {
    C_TEST_TYPE_BYTE *type=(C_TEST_TYPE_BYTE *)ctx;
-   int tst=memcmp(type->expected, type->result, type->size);
+   int tst;
+
+   PRINT_CALLBACK
+
+   tst=memcmp(type->expected, type->result, type->size);
 
    if (is_not_equal)
       (tst)?(tst=0):(tst=-1);
@@ -459,7 +652,11 @@ static void print_assert_not_equal_byte(void *ctx) { print_assert_byte(ctx, 1); 
 static void print_assert_string(void *ctx, int is_not_equal, int is_ignore_case)
 {
    C_TEST_TYPE_STRING *type=(C_TEST_TYPE_STRING *)ctx;
-   int tst=(is_ignore_case)?(strcasecmp(type->expected, type->result)):(strcmp(type->expected, type->result));
+   int tst;
+
+   PRINT_CALLBACK
+
+   tst=(is_ignore_case)?(strcasecmp(type->expected, type->result)):(strcmp(type->expected, type->result));
 
    if (is_not_equal)
       (tst)?(tst=0):(tst=-1);
@@ -483,7 +680,11 @@ static void print_assert_not_equal_string_ignore_case(void *ctx) { print_assert_
 static void print_assert_nullable(void *ctx)
 {
    C_TEST_TYPE_NULLABLE *type=(C_TEST_TYPE_NULLABLE *)ctx;
-   int error=(type->should_be_null)?(type->pointer!=NULL):(type->pointer==NULL);
+   int error;
+
+   PRINT_CALLBACK
+
+   error=(type->should_be_null)?(type->pointer!=NULL):(type->pointer==NULL);
 
    if (error) {
       ERROR_MSG(type->header.on_error)

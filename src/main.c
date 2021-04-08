@@ -29,7 +29,7 @@ int main(int argc, char **argv)
    const char *str2="This is an simple string B";
    assert_true(2==2, "Function error A", "Success A");
    assert_false(10!=10, "Function error 2", "Sucess 2");
-rm_on_add_test();
+   rm_on_add_test();
    assert_equal_int(1, 1, "Function error 3", "Success 3");
    assert_not_equal_int(1, 2, "Function 4", "Success 4");
    assert_equal_double(2, 2.3-0.3, delta, "Error sub", "Success sub");
