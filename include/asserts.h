@@ -46,6 +46,14 @@ void assert_not_null(
 );
 void on_add_test(header_on_cb);
 void rm_on_add_test();
+void on_begin_test(header_on_cb);
+void rm_begin_test();
+void on_test(header_on_cb);
+void rm_on_test();
+void on_end_test(header_on_cb);
+void rm_on_end_test();
+void on_abort(header_on_cb);
+void rm_on_abort();
 void begin_tests();
 void end_tests();
 void abort_tests();
