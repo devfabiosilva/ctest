@@ -22,6 +22,8 @@ static void print_assert_equal_string_ignore_case(void *);
 static void print_assert_not_equal_string_ignore_case(void *);
 static void print_assert_nullable(void *ctx);
 
+static void abort_tests();
+
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
 {
@@ -33,6 +35,7 @@ static void debug_hex_dump(unsigned char *data, size_t data_size)
 #define INITIAL_TITLE "\e[1;3m"
 #define ERROR_CODE "\e[31;1m"
 #define SUCCESS_CODE "\e[32;1m"
+#define WARNING_CODE "\e[33;1m"
 
 #define C_TEST_TRUE (int)(1==1)
 #define C_TEST_FALSE (int)(1!=1)
@@ -267,70 +270,75 @@ static void write_title_fmt(const char *template, const char *fmt, ...)
 #define TITLE_MSG(msg) write_title(msg, INITIAL_TITLE);
 #define ERROR_MSG(msg) write_title(msg, ERROR_CODE);
 #define SUCCESS_MSG(msg) write_title(msg, SUCCESS_CODE);
+#define WARN_MSG(msg) write_title(msg, WARNING_CODE);
 
 #define TITLE_MSG_FMT(...) write_title_fmt(INITIAL_TITLE, __VA_ARGS__);
+#define ERROR_MSG_FMT(...) write_title_fmt(ERROR_CODE, __VA_ARGS__);
+#define WARN_MSG_FMT(...) write_title_fmt(WARNING_CODE, __VA_ARGS__);
 
-void end_tests()
+static void end_tests_util(int abort)
 {
+   time_t t;
+
    if (_c_test_ptr) {
+      t=time(NULL);
+
+      if (abort) {
+         if (((C_TEST_HEADER *)_c_test_ptr)->on_abort_fn)
+            ((C_TEST_HEADER *)_c_test_ptr)->on_abort_fn(_c_test_ptr);
+
+         ERROR_MSG_FMT("Aborting TESTS.\nAt %s\nTests: %d finished", ctime(&t), ((C_TEST_HEADER *)_c_test_ptr)->next)
+      } else {
+         if (((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn)
+            ((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn(_c_test_ptr);
+
+         TITLE_MSG_FMT("*** END TESTS ***\nAt: %s", ctime(&t))
+         TITLE_MSG_FMT("Total time: %llu\n", (uint64_t)t-((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp)
+      }
+
       if (((C_TEST_HEADER *)_c_test_ptr)->tests)
          memset(_c_test_ptr+sizeof(C_TEST_HEADER), 0, (((C_TEST_HEADER *)_c_test_ptr)->tests)*sizeof(C_TEST_FN));
 
       memset(_c_test_ptr, 0, sizeof(C_TEST_HEADER));
       free(_c_test_ptr);
       _c_test_ptr=NULL;
-   }
+
+   } else if (abort)
+      ERROR_MSG("\nERROR: Null pointer. Probably you start ctest with invalid argument. Aborting C test.\n")
+   else
+      WARN_MSG("\nWARNING: Null pointer. Probably you start ctest with invalid argument. Ignoring ...\n")
 }
 
-void abort_tests()
-{
-   if (((C_TEST_HEADER *)_c_test_ptr)->on_abort_fn)
-      ((C_TEST_HEADER *)_c_test_ptr)->on_abort_fn(_c_test_ptr);
+void end_tests() { end_tests_util(0); }
 
-   end_tests();
+static void abort_tests() {
+   end_tests_util(1);
    exit(1);
 }
 
-void begin_tests()
+static void begin_test()
 {
    C_TEST_FN *p, *q;
-   size_t i, total;
    time_t t;
-   const char *title_msg;
-
-   if (!_c_test_ptr) {
-      printf("\nError: No test found. You need to add test\nExiting...\n");
-      exit(1);
-   }
 
    p=((C_TEST_FN *)(_c_test_ptr+sizeof(C_TEST_HEADER)));
-   total=((C_TEST_HEADER *)_c_test_ptr)->tests;
-   ((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp=(uint64_t)(t=time(NULL));
 
-   ((i=((C_TEST_HEADER *)_c_test_ptr)->next))?(title_msg="*** RESUMING TESTS ***\nAt: %s"):(title_msg="*** BEGIN TESTS ***\nAt: %s");
+   t=time(NULL);
 
-   TITLE_MSG_FMT(title_msg, ctime(&t))
+   if (!((C_TEST_HEADER *)_c_test_ptr)->next) {
+      ((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp=(uint64_t)t;
+      TITLE_MSG_FMT("*** BEGIN TEST ***\nAt: %s", ctime(&t))
 
-   if (((C_TEST_HEADER *)_c_test_ptr)->on_begin_test_fn)
-      ((C_TEST_HEADER *)_c_test_ptr)->on_begin_test_fn(_c_test_ptr);
+      if (((C_TEST_HEADER *)_c_test_ptr)->on_begin_test_fn)
+         ((C_TEST_HEADER *)_c_test_ptr)->on_begin_test_fn(_c_test_ptr);
 
-   for (;i<total;) {
-      q=&p[i++];
-      TITLE_MSG_FMT("Testing \"%s\" ...", q->meta.fn_name);
-      q->meta.cb(q);
-      TITLE_MSG_FMT("progress: (%d %)", (i*100)/total);
    }
 
-   ((C_TEST_HEADER *)_c_test_ptr)->next=i;
+   q=&p[((C_TEST_HEADER *)_c_test_ptr)->next++];
+   TITLE_MSG_FMT("Testing %d -> \"%s\" (%p)...", ((C_TEST_HEADER *)_c_test_ptr)->next, q->meta.fn_name, q)
+   q->meta.cb(q);
 
-   ((C_TEST_HEADER *)_c_test_ptr)->final_timestamp=(uint64_t)(t=time(NULL));
-
-   TITLE_MSG_FMT("*** END TESTS ***\nAt: %s", ctime(&t))
-   TITLE_MSG_FMT("Total time: %llu\n", (uint64_t)t-((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp)
-
-   if (((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn)
-      ((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn(_c_test_ptr);
-
+   TITLE_MSG_FMT("Duration (ms): %llu\n", (uint64_t)time(NULL)-t)
 }
 
 #define C_TEST_INITIAL_ADD \
@@ -346,6 +354,9 @@ void begin_tests()
 #define C_TEST_ON_END_FN(fn) ((C_TEST_HEADER *)p)->on_end_test_fn=fn;
 #define C_TEST_ON_ABORT_FN(fn) ((C_TEST_HEADER *)p)->on_abort_fn=fn;
 
+#define C_TEST_ON_ADD_FN_POINTER ((C_TEST_HEADER *)p)->on_add_test_fn
+#define C_TEST_ON_BEGIN_FN_POINTER ((C_TEST_HEADER *)p)->on_begin_test_fn
+
 #define C_TEST_INITIAL_ADD_FN_ALL_NULL \
    C_TEST_ON_ADD_FN(NULL) \
    C_TEST_ON_TEST_FN(NULL) \
@@ -353,6 +364,12 @@ void begin_tests()
    C_TEST_ON_END_FN(NULL) \
    C_TEST_ON_ABORT_FN(NULL)
 
+#define ON_TEST_WARN1 "WARNING: %s callback already exists at pointer (%p). Overwriting with a new callback pointer (%p)"
+#define ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(fn_name, ptr) \
+   if (ptr)\
+      WARN_MSG_FMT(ON_TEST_WARN1, fn_name, ptr, fn);
+
+#define ON_ADD_TEST_STR "on_add_test()"
 void on_add_test(header_on_cb fn)
 {
    #define p _c_test_ptr
@@ -377,21 +394,32 @@ void on_add_test(header_on_cb fn)
 
    }
 
+   ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(ON_ADD_TEST_STR, C_TEST_ON_ADD_FN_POINTER)
+
    C_TEST_ON_ADD_FN(fn)
 
    #undef p
 }
 
+#define RM_ON_TEST_WARN1 "WARNING: %s without %s. Ignoring ..." 
+#define RM_ON_TEST_WARN2 "WARNING: %s may be NOT initialized. Ignoring ..."
+#define RM_ON_ADD_TEST_STR "rm_on_add_test()"
 void rm_on_add_test()
 {
    #define p _c_test_ptr
 
-   if (p)
-      C_TEST_ON_ADD_FN(NULL)
+   if (p) {
+      if (C_TEST_ON_ADD_FN_POINTER)
+         C_TEST_ON_ADD_FN(NULL)
+      else
+         WARN_MSG_FMT(RM_ON_TEST_WARN1, RM_ON_ADD_TEST_STR, ON_ADD_TEST_STR)
+   } else
+      WARN_MSG_FMT(RM_ON_TEST_WARN2, ON_ADD_TEST_STR)
 
    #undef p
 }
 
+#define ON_BEGIN_TEST_STR "on_begin_test()"
 void on_begin_test(header_on_cb fn)
 {
    #define p _c_test_ptr
@@ -416,17 +444,25 @@ void on_begin_test(header_on_cb fn)
 
    }
 
+   ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(ON_BEGIN_TEST_STR, C_TEST_ON_BEGIN_FN_POINTER)
+
    C_TEST_ON_BEGIN_FN(fn)
 
    #undef p
 }
 
+#define RM_ON_BEGIN_TEST_STR "rm_begin_test()"
 void rm_begin_test()
 {
    #define p _c_test_ptr
 
-   if (p)
-      C_TEST_ON_BEGIN_FN(NULL)
+   if (p) {
+      if (C_TEST_ON_BEGIN_FN_POINTER)
+         C_TEST_ON_BEGIN_FN(NULL)
+      else
+         WARN_MSG_FMT(RM_ON_TEST_WARN1, RM_ON_BEGIN_TEST_STR, ON_BEGIN_TEST_STR)
+   } else
+      WARN_MSG_FMT(RM_ON_TEST_WARN2, ON_BEGIN_TEST_STR)
 
    #undef p
 }
@@ -509,18 +545,18 @@ void rm_on_end_test()
    #undef p
 }
 
-void on_obort(header_on_cb fn)
+void on_abort(header_on_cb fn)
 {
    #define p _c_test_ptr
 
    if (!fn) {
-      ERROR_MSG("Fatal: on_obort missing callback function")
+      ERROR_MSG("Fatal: on_abort missing callback function")
       abort_tests();
    }
 
    if (!p) {
       if (!(p=malloc(sizeof(C_TEST_HEADER)))) {
-         ERROR_MSG("Fatal: on_obort missing callback function. Can't alloc memory")
+         ERROR_MSG("Fatal: on_abort missing callback function. Can't alloc memory")
          abort_tests();
       }
 
@@ -580,20 +616,21 @@ static void print_assert_not_equal_int(void *ctx) { print_assert_int(ctx, 1); }
 static void print_assert_longint(void *ctx, int is_not_equal)
 {
    C_TEST_TYPE_LONG_INT *type=(C_TEST_TYPE_LONG_INT *)ctx;
+   int error;
 
    PRINT_CALLBACK
 
-   if (is_not_equal) {
-      if (type->expected!=type->result)
-         goto print_assert_longint_EXIT1;
-   } else if (type->expected==type->result) {
-print_assert_longint_EXIT1:
-      SUCCESS_MSG(type->header.on_success)
-      return;
+   error=(type->expected!=type->result);
+
+   if (is_not_equal)
+      error=!error;
+
+   if (error) {
+      ERROR_MSG(type->header.on_error)
+      abort_tests();
    }
 
-   ERROR_MSG(type->header.on_error)
-   abort_tests();
+   SUCCESS_MSG(type->header.on_success)
 }
 
 static void print_assert_equal_long_int(void *ctx) { print_assert_longint(ctx, 0); }
@@ -740,6 +777,11 @@ add_test_EXIT1:
    type.expected=expected;\
    type.result=result;
 
+#define TEST_BEGIN \
+   add_test((void *)&type); \
+   begin_test();
+
+
 static void assert_equal_bool(
    int expected,
    int result,
@@ -751,7 +793,7 @@ static void assert_equal_bool(
 
    (result==C_TEST_TRUE)?(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE):(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE);
    ASSERT_PRELOAD
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_false(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(value, C_TEST_FALSE, on_error_msg, on_success); }
@@ -764,7 +806,7 @@ static void assert_int(int expected, int result, C_TEST_FN_DESCRIPTION *desc, co
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
    ASSERT_PRELOAD
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_equal_int(int expected, int result, const char *on_error_msg, const char *on_success)
@@ -783,7 +825,7 @@ static void assert_longint(long long int expected, long long int result, C_TEST_
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
    ASSERT_PRELOAD
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_equal_longint(long long int expected, long long int result, const char *on_error_msg, const char *on_success)
@@ -804,7 +846,7 @@ static void assert_double(double expected, double result, double delta, C_TEST_F
    ASSERT_PRELOAD
    type.is_not_equal=(desc==&C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_DOUBLE);
    type.delta=delta;
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_equal_double(double expected, double result, double delta, const char *on_error_msg, const char *on_success)
@@ -835,7 +877,7 @@ static void assert_byte(
    type.size=size;
    type.free_on_error_cb=free_on_error_cb;
    type.free_on_error_ctx=free_on_error_ctx;
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_equal_byte(
@@ -876,7 +918,7 @@ static void assert_string(
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
    ASSERT_PRELOAD
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_equal_string(const char *expected, const char *result, const char *on_error_msg, const char *on_success)
@@ -917,7 +959,7 @@ static void assert_nullable(
    type.pointer=result;
    type.free_on_error_cb=free_on_error_cb;
    type.free_on_error_ctx=free_on_error_ctx;
-   add_test((void *)&type);
+   TEST_BEGIN
 }
 
 void assert_null(

@@ -54,7 +54,6 @@ void on_end_test(header_on_cb);
 void rm_on_end_test();
 void on_abort(header_on_cb);
 void rm_on_abort();
-void begin_tests();
 void end_tests();
-void abort_tests();
+
 
