@@ -635,7 +635,7 @@ void rm_abort()
 
 static C_TEST_VARGS_MSG **c_test_vargs_create()
 {
-   #define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE+1)*sizeof(void *)
+   #define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE+1)*sizeof(C_TEST_VARGS_MSG *)
    void **c_vargs=malloc(C_VARGS_SZ);
 
    if (!c_vargs)
@@ -650,10 +650,7 @@ static C_TEST_VARGS_MSG **c_test_vargs_create()
 static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **test_vargs_msg, uint32_t sig)
 {
    C_TEST_VARGS_MSG **p;
-/*
-   if (!test_vargs_msg)
-      return NULL;
-*/
+
    p=test_vargs_msg;
 
    do {
@@ -664,6 +661,17 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **test_vargs
    return NULL;
 }
 
+static size_t check_msgsig(C_TEST_VARGS_MSG *va_msg)
+{
+   uint32_t i=0;
+
+   for (;i<C_TEST_VARGS_MSG_SIGS_SIZE;)
+      if (va_msg->sig==C_TEST_VARGS_MSG_SIGS[i++])
+         return va_msg->sig;
+
+   return 0;
+}
+
 static int free_vargs(C_TEST_VARGS_MSG **vargs)
 {
    int err=0;
@@ -671,6 +679,12 @@ static int free_vargs(C_TEST_VARGS_MSG **vargs)
    C_TEST_VARGS_MSG **p=vargs;
 
    do {
+      if (!check_msgsig(*p)) {
+         err=7;
+         ERROR_MSG("ERROR: check_msgsig(). Missing or invalid message signature. Maybe wrong parameters. Ignoring free argument")
+         continue;
+      }
+
       if ((*p)->msg_sz>=0)
          free((*p)->msg);
       else
@@ -683,6 +697,49 @@ static int free_vargs(C_TEST_VARGS_MSG **vargs)
 
    return err;
 }
+
+static int close_varg(C_TEST_VARGS_MSG *varg)
+{
+   int err;
+
+   if (!varg) {
+      WARN_MSG("WARNING: close_varg() is NULL. Ignoring closing parameter")
+      return 8;
+   }
+
+   if (!check_msgsig(varg)) {
+      WARN_MSG_FMT("WARNING: check_msgsig() @ close_varg. Signature not found in pointer (%p). Ignoring closing", (void *)varg)
+      return 9;
+   }
+   err=0;
+   (varg->msg_sz>=0)?free(varg->msg):
+   WARN_MSG_FMT(
+      "WARNING %d: close_varg(). Message may be a wrong format at (%p). Closing vargs...",
+       err=varg->msg_sz, 
+       (void *)varg
+   )
+
+   free(varg);
+
+   return 0;
+}
+
+static C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
+{
+   C_TEST_VARGS_MSG *varg_tmp;
+   va_list args;
+
+   if (!(varg_tmp=malloc(sizeof(C_TEST_VARGS_MSG))))
+      return NULL;
+
+   varg_tmp->sig=sig;
+   va_start(args, message);
+   varg_tmp->msg_sz=vasprintf(&varg_tmp->msg, message, args);
+   va_end(args);
+
+   return varg_tmp;
+}
+
 //
 #define PRINT_CALLBACK \
    if (((C_TEST_HEADER *)_c_test_ptr)->on_test_fn)\
