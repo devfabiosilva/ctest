@@ -149,6 +149,24 @@ typedef struct c_test_type_nullable_t {
    free_on_error_cb;
 } C_TEST_TYPE_NULLABLE;
 
+#define C_TEST_VARGS_TITLE (uint32_t)(0x0002E4992)
+#define C_TEST_VARGS_INFO (uint32_t)(0x0012E4992)
+#define C_TEST_VARGS_WARNING (uint32_t)(0x0022E4992)
+#define C_TEST_VARGS_ERROR (uint32_t)(0x0032E4992)
+#define C_TEST_VARGS_SUCCESS (uint32_t)(0x0042E4992)
+
+const uint32_t C_TEST_VARGS_MSG_SIGS[] = {
+   C_TEST_VARGS_TITLE, C_TEST_VARGS_INFO, C_TEST_VARGS_WARNING,
+   C_TEST_VARGS_ERROR, C_TEST_VARGS_SUCCESS
+};
+
+#define C_TEST_VARGS_MSG_SIGS_SIZE (sizeof(C_TEST_VARGS_MSG_SIGS)/sizeof(uint32_t))
+typedef struct c_test_vargs_msg_t {
+   uint32_t sig;
+   int msg_sz;
+   char *msg;
+} C_TEST_VARGS_MSG;
+
 #define ASSERT_EQ_INT_FN "assert_equal_int"
 #define ASSERT_TRUE_FN "assert_true"
 #define ASSERT_FALSE_FN "assert_false"
@@ -356,6 +374,9 @@ static void begin_test()
 
 #define C_TEST_ON_ADD_FN_POINTER ((C_TEST_HEADER *)p)->on_add_test_fn
 #define C_TEST_ON_BEGIN_FN_POINTER ((C_TEST_HEADER *)p)->on_begin_test_fn
+#define C_TEST_ON_TEST_FN_POINTER ((C_TEST_HEADER *)p)->on_test_fn
+#define C_TEST_ON_END_FN_POINTER ((C_TEST_HEADER *)p)->on_end_test_fn
+#define C_TEST_ON_ABORT_FN_POINTER ((C_TEST_HEADER *)p)->on_abort_fn
 
 #define C_TEST_INITIAL_ADD_FN_ALL_NULL \
    C_TEST_ON_ADD_FN(NULL) \
@@ -366,7 +387,7 @@ static void begin_test()
 
 #define ON_TEST_WARN1 "WARNING: %s callback already exists at pointer (%p). Overwriting with a new callback pointer (%p)"
 #define ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(fn_name, ptr) \
-   if (ptr)\
+   if (ptr) \
       WARN_MSG_FMT(ON_TEST_WARN1, fn_name, ptr, fn);
 
 #define ON_ADD_TEST_STR "on_add_test()"
@@ -467,6 +488,7 @@ void rm_begin_test()
    #undef p
 }
 
+#define ON_TEST_STR "on_test()"
 void on_test(header_on_cb fn)
 {
    #define p _c_test_ptr
@@ -491,21 +513,30 @@ void on_test(header_on_cb fn)
 
    }
 
+   ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(ON_TEST_STR, C_TEST_ON_TEST_FN_POINTER)
+
    C_TEST_ON_TEST_FN(fn)
 
    #undef p
 }
 
+#define RM_ON_TEST_TEST_STR "rm_on_test()"
 void rm_on_test()
 {
    #define p _c_test_ptr
 
-   if (p)
-      C_TEST_ON_TEST_FN(NULL)
+   if (p) {
+      if (C_TEST_ON_TEST_FN_POINTER)
+         C_TEST_ON_TEST_FN(NULL)
+      else
+         WARN_MSG_FMT(RM_ON_TEST_WARN1, RM_ON_TEST_TEST_STR, ON_TEST_STR)
+   } else
+      WARN_MSG_FMT(RM_ON_TEST_WARN2, ON_TEST_STR)
 
    #undef p
 }
 
+#define ON_END_TEST_STR "on_end_test()"
 void on_end_test(header_on_cb fn)
 {
    #define p _c_test_ptr
@@ -530,21 +561,30 @@ void on_end_test(header_on_cb fn)
 
    }
 
+   ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(ON_END_TEST_STR, C_TEST_ON_END_FN_POINTER)
+
    C_TEST_ON_END_FN(fn)
 
    #undef p
 }
 
+#define RM_ON_END_TEST_STR "rm_on_end_test()"
 void rm_on_end_test()
 {
    #define p _c_test_ptr
 
-   if (p)
-      C_TEST_ON_END_FN(NULL)
+   if (p) {
+      if (C_TEST_ON_END_FN_POINTER)
+         C_TEST_ON_END_FN(NULL)
+      else
+         WARN_MSG_FMT(RM_ON_TEST_WARN1, RM_ON_END_TEST_STR, ON_END_TEST_STR)
+   } else
+      WARN_MSG_FMT(RM_ON_TEST_WARN2, ON_END_TEST_STR)
 
    #undef p
 }
 
+#define ON_ABORT_STR "on_abort()"
 void on_abort(header_on_cb fn)
 {
    #define p _c_test_ptr
@@ -569,21 +609,81 @@ void on_abort(header_on_cb fn)
 
    }
 
+   ON_TEST_WARN1_IF_CALLBACK_ALREADY_EXISTS(ON_ABORT_STR, C_TEST_ON_ABORT_FN_POINTER)
+
    C_TEST_ON_ABORT_FN(fn)
 
    #undef p
 }
 
+#define RM_ON_ABORT_STR "rm_abort()"
 void rm_abort()
 {
    #define p _c_test_ptr
 
-   if (p)
-      C_TEST_ON_ABORT_FN(NULL)
+   if (p) {
+      if (C_TEST_ON_ABORT_FN_POINTER)
+         C_TEST_ON_ABORT_FN(NULL)
+      else
+         WARN_MSG_FMT(RM_ON_TEST_WARN1, RM_ON_ABORT_STR, ON_ABORT_STR)
+   } else
+      WARN_MSG_FMT(RM_ON_TEST_WARN2, ON_ABORT_STR)
 
    #undef p
 }
+//
 
+static C_TEST_VARGS_MSG **c_test_vargs_create()
+{
+   #define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE+1)*sizeof(void *)
+   void **c_vargs=malloc(C_VARGS_SZ);
+
+   if (!c_vargs)
+      return NULL;
+
+   memset(*c_vargs, 0, C_VARGS_SZ);
+   return (C_TEST_VARGS_MSG **)c_vargs;
+
+   #undef C_VARGS_SZ
+}
+
+static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **test_vargs_msg, uint32_t sig)
+{
+   C_TEST_VARGS_MSG **p;
+/*
+   if (!test_vargs_msg)
+      return NULL;
+*/
+   p=test_vargs_msg;
+
+   do {
+      if ((*p)->sig==sig)
+         return (*p);
+   } while (++(*p));
+
+   return NULL;
+}
+
+static int free_vargs(C_TEST_VARGS_MSG **vargs)
+{
+   int err=0;
+
+   C_TEST_VARGS_MSG **p=vargs;
+
+   do {
+      if ((*p)->msg_sz>=0)
+         free((*p)->msg);
+      else
+         ERROR_MSG_FMT("ERROR %d: free_vargs(). Error dealloc message. Signature = %04x at address = (%p)", (err=(*p)->msg_sz), (*p)->sig, (*p))
+
+      free(*p);
+   } while (++(*p));
+
+   free(vargs);
+
+   return err;
+}
+//
 #define PRINT_CALLBACK \
    if (((C_TEST_HEADER *)_c_test_ptr)->on_test_fn)\
       ((C_TEST_HEADER *)_c_test_ptr)->on_test_fn(ctx);
