@@ -55,5 +55,6 @@ void rm_on_end_test();
 void on_abort(header_on_cb);
 void rm_on_abort();
 void end_tests();
+void playground(int argc, ...);
 
 

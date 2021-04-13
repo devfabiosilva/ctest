@@ -27,6 +27,9 @@ static void abort_tests();
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
 {
+   if (!data_size)
+      return;
+
    for (;data_size--;)
       printf("%02X ", (unsigned char)*(data++));
 }
@@ -149,11 +152,14 @@ typedef struct c_test_type_nullable_t {
    free_on_error_cb;
 } C_TEST_TYPE_NULLABLE;
 
-#define C_TEST_VARGS_TITLE (uint32_t)(0x0002E4992)
-#define C_TEST_VARGS_INFO (uint32_t)(0x0012E4992)
-#define C_TEST_VARGS_WARNING (uint32_t)(0x0022E4992)
-#define C_TEST_VARGS_ERROR (uint32_t)(0x0032E4992)
-#define C_TEST_VARGS_SUCCESS (uint32_t)(0x0042E4992)
+#define C_TEST_VARGS_TITLE (uint32_t)(0x002E4992)
+#define C_TEST_VARGS_INFO (uint32_t)(0x012E4992)
+#define C_TEST_VARGS_WARNING (uint32_t)(0x022E4992)
+#define C_TEST_VARGS_ERROR (uint32_t)(0x032E4992)
+#define C_TEST_VARGS_SUCCESS (uint32_t)(0x042E4992)
+#define C_TEST_VARGS_SETTER (uint32_t)(0x043E4992)
+#define C_TEST_VARGS_SETTER_CHK_SUM (uint32_t)(0x1bc1eeb8)
+//1bc1eeb82c6d13f903c7c176c23ae85208d67e5a295accad8f371310e35043bc
 
 const uint32_t C_TEST_VARGS_MSG_SIGS[] = {
    C_TEST_VARGS_TITLE, C_TEST_VARGS_INFO, C_TEST_VARGS_WARNING,
@@ -166,6 +172,12 @@ typedef struct c_test_vargs_msg_t {
    int msg_sz;
    char *msg;
 } C_TEST_VARGS_MSG;
+
+typedef struct c_test_vargs_msg_header_t {
+   uint32_t sig;
+   uint32_t sig_chk;
+   C_TEST_VARGS_MSG **vargs_msgs;
+} C_TEST_VARGS_MSG_HEADER;
 
 #define ASSERT_EQ_INT_FN "assert_equal_int"
 #define ASSERT_TRUE_FN "assert_true"
@@ -632,19 +644,25 @@ void rm_abort()
    #undef p
 }
 //
-
-static C_TEST_VARGS_MSG **c_test_vargs_create()
+#define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE)*sizeof(C_TEST_VARGS_MSG *)+sizeof(C_TEST_VARGS_MSG_HEADER)
+static inline int c_test_is_header_invalid(C_TEST_VARGS_MSG_HEADER *header)
 {
-   #define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE+1)*sizeof(C_TEST_VARGS_MSG *)
-   void **c_vargs=malloc(C_VARGS_SZ);
+   return ((header->sig^C_TEST_VARGS_SETTER)|(header->sig_chk^C_TEST_VARGS_SETTER_CHK_SUM));
+}
 
-   if (!c_vargs)
+static C_TEST_VARGS_MSG_HEADER *c_test_vargs_create()
+{
+   void *c_vargs;
+
+   if (!(c_vargs=malloc(C_VARGS_SZ)))
       return NULL;
 
-   memset(*c_vargs, 0, C_VARGS_SZ);
-   return (C_TEST_VARGS_MSG **)c_vargs;
+   ((C_TEST_VARGS_MSG_HEADER *)c_vargs)->sig=C_TEST_VARGS_SETTER;
+   ((C_TEST_VARGS_MSG_HEADER *)c_vargs)->sig_chk=C_TEST_VARGS_SETTER_CHK_SUM;
 
-   #undef C_VARGS_SZ
+   memset(*((C_TEST_VARGS_MSG_HEADER *)c_vargs)->vargs_msgs, 0, C_TEST_VARGS_MSG_SIGS_SIZE+1);
+   return (C_TEST_VARGS_MSG_HEADER *)c_vargs;
+
 }
 
 static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **test_vargs_msg, uint32_t sig)
@@ -661,7 +679,7 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **test_vargs
    return NULL;
 }
 
-static size_t check_msgsig(C_TEST_VARGS_MSG *va_msg)
+static uint32_t check_msgsig(C_TEST_VARGS_MSG *va_msg)
 {
    uint32_t i=0;
 
@@ -672,11 +690,11 @@ static size_t check_msgsig(C_TEST_VARGS_MSG *va_msg)
    return 0;
 }
 
-static int free_vargs(C_TEST_VARGS_MSG **vargs)
+static int free_vargs(C_TEST_VARGS_MSG_HEADER *vargs)
 {
    int err=0;
 
-   C_TEST_VARGS_MSG **p=vargs;
+   C_TEST_VARGS_MSG **p=vargs->vargs_msgs;
 
    do {
       if (!check_msgsig(*p)) {
@@ -685,15 +703,16 @@ static int free_vargs(C_TEST_VARGS_MSG **vargs)
          continue;
       }
 
-      if ((*p)->msg_sz>=0)
-         free((*p)->msg);
-      else
+      if ((*p)->msg_sz>=0) {
+         if ((*p)->msg)
+            free((*p)->msg);
+      } else
          ERROR_MSG_FMT("ERROR %d: free_vargs(). Error dealloc message. Signature = %04x at address = (%p)", (err=(*p)->msg_sz), (*p)->sig, (*p))
 
       free(*p);
    } while (++(*p));
 
-   free(vargs);
+   free(memset(vargs, 0, C_VARGS_SZ));
 
    return err;
 }
@@ -708,20 +727,26 @@ static int close_varg(C_TEST_VARGS_MSG *varg)
    }
 
    if (!check_msgsig(varg)) {
-      WARN_MSG_FMT("WARNING: check_msgsig() @ close_varg. Signature not found in pointer (%p). Ignoring closing", (void *)varg)
+      WARN_MSG_FMT("WARNING: check_msgsig() @ close_varg. Signature not found in address (%p). Ignoring closing", (void *)varg)
       return 9;
    }
+
    err=0;
-   (varg->msg_sz>=0)?free(varg->msg):
-   WARN_MSG_FMT(
-      "WARNING %d: close_varg(). Message may be a wrong format at (%p). Closing vargs...",
-       err=varg->msg_sz, 
-       (void *)varg
-   )
+
+   if (varg->msg_sz>=0) {
+      if (varg->msg)
+         free(varg->msg);
+
+   } else
+      WARN_MSG_FMT(
+         "WARNING %d: close_varg(). Message may be a wrong format at address (%p). Closing vargs...",
+          err=varg->msg_sz, 
+          (void *)varg
+      )
 
    free(varg);
 
-   return 0;
+   return err;
 }
 
 static C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
