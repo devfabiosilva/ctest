@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <stdarg.h>
 #include <asserts.h>
 #include <time.h>
@@ -167,17 +166,6 @@ const uint32_t C_TEST_VARGS_MSG_SIGS[] = {
 };
 
 #define C_TEST_VARGS_MSG_SIGS_SIZE (sizeof(C_TEST_VARGS_MSG_SIGS)/sizeof(uint32_t))
-typedef struct c_test_vargs_msg_t {
-   uint32_t sig;
-   int msg_sz;
-   char *msg;
-} C_TEST_VARGS_MSG;
-
-typedef struct c_test_vargs_msg_header_t {
-   uint32_t sig;
-   uint32_t sig_chk;
-   C_TEST_VARGS_MSG **vargs_msgs;
-} C_TEST_VARGS_MSG_HEADER;
 
 #define ASSERT_EQ_INT_FN "assert_equal_int"
 #define ASSERT_TRUE_FN "assert_true"
@@ -764,6 +752,27 @@ static C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
 
    return varg_tmp;
 }
+
+C_TEST_VARGS_MSG_HEADER *vargs_setter(int initial, ...)
+{
+   va_list args, args_cpy;
+
+   if (initial!=-1) {
+      WARN_MSG("WARNING: Initial value is wrong. Please consider use \"CTEST_SETTER\" instead. Ignoring parameter ...")
+      return NULL;
+   }
+
+   va_start(args, initial);
+   vprintf("\nvargs_setter %s %s %p\n", args);
+   va_end(args);
+   return NULL;
+}
+
+#define CTEST_TITLE(...) set_varg(C_TEST_VARGS_TITLE, __VA_ARGS__)
+#define CTEST_INFO(...) set_varg(C_TEST_VARGS_INFO, __VA_ARGS__)
+#define CTEST_WARN(...) set_varg(C_TEST_VARGS_WARNING, __VA_ARGS__)
+#define CTEST_ON_ERROR(...) set_varg(C_TEST_VARGS_ERROR, __VA_ARGS__)
+#define CTEST_ON_SUCCESS(...) set_varg(C_TEST_VARGS_SUCCESS, __VA_ARGS__)
 
 //
 #define PRINT_CALLBACK \

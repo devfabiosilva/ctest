@@ -1,5 +1,22 @@
+#include <stdint.h>
+static const uint64_t va_end_signature_u64 = 0x00000000df3f6198;
+#define VA_END_SIGNATURE (uint64_t *)&va_end_signature_u64
+//df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119
 typedef void (*free_on_error_fn)(void *);
 typedef void (*header_on_cb)(void *);
+
+typedef struct c_test_vargs_msg_t {
+   uint32_t sig;
+   int msg_sz;
+   char *msg;
+} C_TEST_VARGS_MSG;
+
+typedef struct c_test_vargs_msg_header_t {
+   uint32_t sig;
+   uint32_t sig_chk;
+   C_TEST_VARGS_MSG **vargs_msgs;
+} C_TEST_VARGS_MSG_HEADER;
+
 void assert_true(int, const char *, const char *);
 void assert_false(int, const char *, const char *);
 void assert_equal_int(int, int, const char *, const char *);
@@ -55,6 +72,6 @@ void rm_on_end_test();
 void on_abort(header_on_cb);
 void rm_on_abort();
 void end_tests();
-void playground(int argc, ...);
-
+C_TEST_VARGS_MSG_HEADER *vargs_setter(int, ...);
+#define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, VA_END_SIGNATURE, NULL)
 
