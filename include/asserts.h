@@ -73,5 +73,5 @@ void on_abort(header_on_cb);
 void rm_on_abort();
 void end_tests();
 C_TEST_VARGS_MSG_HEADER *vargs_setter(int, ...);
-#define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, VA_END_SIGNATURE, NULL)
+#define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, VA_END_SIGNATURE)
 

@@ -755,17 +755,63 @@ static C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
 
 C_TEST_VARGS_MSG_HEADER *vargs_setter(int initial, ...)
 {
+   int err, argc;
    va_list args, args_cpy;
+   void *v;
+   C_TEST_VARGS_MSG_HEADER *ret;
 
    if (initial!=-1) {
-      WARN_MSG("WARNING: Initial value is wrong. Please consider use \"CTEST_SETTER\" instead. Ignoring parameter ...")
+      ERROR_MSG("ERROR: Initial value is wrong. Please consider use \"CTEST_SETTER\" instead. Ignoring parameter ...")
       return NULL;
    }
 
+   err=0;
+   argc=0;
+
    va_start(args, initial);
-   vprintf("\nvargs_setter %s %s %p\n", args);
+#define MAX_ARG_OVF (size_t)C_TEST_VARGS_MSG_SIGS_SIZE+2
+   while ((argc++)<MAX_ARG_OVF) {
+
+      if (argc==MAX_ARG_OVF) {
+         err=-3;
+         ERROR_MSG("ERROR: CTEST_SETTER has too many arguments")
+         break;
+      }
+
+      if (!(v=(void *)va_arg(args, void *))) {
+         err=-1;
+         ERROR_MSG_FMT("ERROR: CTEST_SETTER has NULL parameter at %d argument.", argc)
+         continue;
+      }
+
+      if (((uint64_t *)v)==VA_END_SIGNATURE) {
+         if (!(--argc)) {
+            err=-2;
+            ERROR_MSG("ERROR: CTEST_SETTER has any argument.")
+         }
+
+         break;
+      }
+
+      if (!check_msgsig((C_TEST_VARGS_MSG *)v)) {
+         err=-4;
+         ERROR_MSG("ERROR: Invalid message argument")
+      }
+   }
    va_end(args);
-   return NULL;
+
+   if (err) {
+//TODO
+      return NULL;
+   }
+
+   res=NULL;
+   if (argc) {
+//TODO
+   }
+
+#undef MAX_ARG_OVF
+   return res;
 }
 
 #define CTEST_TITLE(...) set_varg(C_TEST_VARGS_TITLE, __VA_ARGS__)
