@@ -153,12 +153,13 @@ typedef struct c_test_type_nullable_t {
    free_on_error_fn
    free_on_error_cb;
 } C_TEST_TYPE_NULLABLE;
-
+/*
 #define C_TEST_VARGS_TITLE (uint32_t)(0x002E4992)
 #define C_TEST_VARGS_INFO (uint32_t)(0x012E4992)
 #define C_TEST_VARGS_WARNING (uint32_t)(0x022E4992)
 #define C_TEST_VARGS_ERROR (uint32_t)(0x032E4992)
 #define C_TEST_VARGS_SUCCESS (uint32_t)(0x042E4992)
+*/
 #define C_TEST_VARGS_SETTER (uint32_t)(0x043E4992)
 #define C_TEST_VARGS_SETTER_CHK_SUM (uint32_t)(0x1bc1eeb8)
 //1bc1eeb82c6d13f903c7c176c23ae85208d67e5a295accad8f371310e35043bc
@@ -744,7 +745,7 @@ static int close_varg(C_TEST_VARGS_MSG *varg)
    return err;
 }
 
-static C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
+C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
 {
    C_TEST_VARGS_MSG *varg_tmp;
    va_list args;
@@ -760,7 +761,7 @@ static C_TEST_VARGS_MSG *set_varg(uint32_t sig, const char *message, ...)
    return varg_tmp;
 }
 
-#define VARG_ERROR_MSG_NULL_PARM "ERROR: CTEST_SETTER has NULL parameter at %d argument."
+#define VARG_ERROR_MSG_NULL_PARM "ERROR: CTEST_SETTER has NULL parameter at argument %d."
 #define VARG_ERROR_MSG_MANY_ARGUMENTS "ERROR: CTEST_SETTER has too many arguments"
 C_TEST_VARGS_MSG_HEADER *vargs_setter(int initial, ...)
 {
@@ -780,25 +781,32 @@ C_TEST_VARGS_MSG_HEADER *vargs_setter(int initial, ...)
 
    va_start(args, initial);
    va_copy(args_cpy, args);
-#define MAX_ARG_OVF (size_t)C_TEST_VARGS_MSG_SIGS_SIZE+3
+#define MAX_ARG_OVF (size_t)C_TEST_VARGS_MSG_SIGS_SIZE+2
    while ((argc++)<MAX_ARG_OVF) {
-      if (argc==MAX_ARG_OVF) {
+
+      if (argc>MAX_ARG_OVF) {
+         argc--;
          err=-3;
          ERROR_MSG(VARG_ERROR_MSG_MANY_ARGUMENTS)
          break;
       }
 
-      if (!(v=(void *)va_arg(args, void *))) {
+      if ((v=(void *)va_arg(args, void *))==VA_END_SIGNATURE)
+         break;
+
+      if (!v) {
+
          argc++;
 
-         if ((v=(void *)va_arg(args, void *))==VA_END_SIGNATURE)
-            break;
-
-         if (argc==MAX_ARG_OVF) {
+         if (argc>MAX_ARG_OVF) {
+            argc--;
             err=-5;
             ERROR_MSG(VARG_ERROR_MSG_MANY_ARGUMENTS)
             break;
          }
+
+         if ((v=(void *)va_arg(args, void *))==VA_END_SIGNATURE)
+            break;
 
          err=-1;
          ERROR_MSG_FMT(VARG_ERROR_MSG_NULL_PARM, argc-1)
@@ -806,24 +814,33 @@ C_TEST_VARGS_MSG_HEADER *vargs_setter(int initial, ...)
          if (v)
             goto while_vargs_continue;
 
-         ERROR_MSG_FMT(VARG_ERROR_MSG_NULL_PARM, argc)
+         if ((MAX_ARG_OVF-2)>argc)
+            ERROR_MSG_FMT(VARG_ERROR_MSG_NULL_PARM, argc)
 
          continue;
       }
-/*
-      if (((uint64_t *)v)==VA_END_SIGNATURE)
-         break;
-*/
+
 while_vargs_continue:
-      if (!check_msgsig((C_TEST_VARGS_MSG *)v)) {
-         err=-4;
-         ERROR_MSG("ERROR: Invalid message argument")
-      }
+      if ((MAX_ARG_OVF-2)>=argc)
+         if (!check_msgsig((C_TEST_VARGS_MSG *)v)) {
+            err=-4;
+            ERROR_MSG_FMT("ERROR: Invalid message at argument %d", argc)
+         }
    }
    va_end(args);
 
-   if (!(--argc))
-      return (C_TEST_VARGS_MSG_HEADER *)VA_END_SIGNATURE;
+   if (argc>2)
+      argc-=2;
+   else if (argc==2) {
+      if (!err)
+         return (C_TEST_VARGS_MSG_HEADER *)VA_END_SIGNATURE;
+
+      ERROR_MSG_FMT("ERROR %d: Invalid empty args", err);
+      return NULL;
+   } else {
+      ERROR_MSG("ERROR: vargs_setter must be initialized only with CTEST_SETTER macro.");
+      return NULL;
+   }
 
    va_copy(args, args_cpy);
    va_start(args, initial);
@@ -871,12 +888,6 @@ vargs_setter_EXIT1:
 
 #undef MAX_ARG_OVF
 }
-
-#define CTEST_TITLE(...) set_varg(C_TEST_VARGS_TITLE, __VA_ARGS__)
-#define CTEST_INFO(...) set_varg(C_TEST_VARGS_INFO, __VA_ARGS__)
-#define CTEST_WARN(...) set_varg(C_TEST_VARGS_WARNING, __VA_ARGS__)
-#define CTEST_ON_ERROR(...) set_varg(C_TEST_VARGS_ERROR, __VA_ARGS__)
-#define CTEST_ON_SUCCESS(...) set_varg(C_TEST_VARGS_SUCCESS, __VA_ARGS__)
 
 //
 #define PRINT_CALLBACK \

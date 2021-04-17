@@ -3,7 +3,7 @@
 #include <asserts.h>
 #include <string.h>
 #include <stdint.h>
-
+/*
 struct a {
    uint32_t b;
    const char *c;
@@ -20,13 +20,32 @@ void cb_func_on_error(void *ctx)
 {
    printf("\nExiting on error test\n\t%s\n", (const char *)ctx);
 }
+*/
+
+C_TEST_VARGS_MSG *varg_msg=NULL;
+
+void cb_func_on_error(void *ctx)
+{
+   printf("\nExiting on error test (%p)\n", ctx);
+}
+
 
 int main(int argc, char **argv)
 {
+   on_abort(cb_func_on_error);
+
+   //assert_true(0, "Error. It is false", "Success. It is true");
+
+   varg_msg=CTEST_TITLE("shghg");
+   assert_not_null(varg_msg, NULL, NULL, "Error. Expected not null", "varg_msg != NULL -> Success");
+
+   assert_null(CTEST_SETTER(varg_msg, NULL, "NULL"), NULL, NULL, "Error. Expected = NULL", "CTEST_SETTER: Success");
+   return 0;
+/*
    double delta=1E-15;
    const char *str1="This is an simple string A";
    const char *str2="This is an simple string B";
-CTEST_SETTER(NULL,NULL,NULL,NULL,NULL);
+
    assert_true(2==2, "Function error A", "Success A");
    assert_false(10!=10, "Function error 2", "Sucess 2");
    rm_on_add_test();
@@ -59,4 +78,5 @@ on_add_test(on_add_assert);
 //   begin_tests();
    end_tests();
    return 0;
+*/
 }

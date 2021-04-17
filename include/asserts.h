@@ -74,5 +74,19 @@ void on_abort(header_on_cb);
 void rm_on_abort();
 void end_tests();
 C_TEST_VARGS_MSG_HEADER *vargs_setter(int, ...);
+C_TEST_VARGS_MSG *set_varg(uint32_t, const char *, ...);
+
+#define C_TEST_VARGS_TITLE (uint32_t)(0x002E4992)
+#define C_TEST_VARGS_INFO (uint32_t)(0x012E4992)
+#define C_TEST_VARGS_WARNING (uint32_t)(0x022E4992)
+#define C_TEST_VARGS_ERROR (uint32_t)(0x032E4992)
+#define C_TEST_VARGS_SUCCESS (uint32_t)(0x042E4992)
+
 #define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, NULL, VA_END_SIGNATURE)
+
+#define CTEST_TITLE(...) set_varg(C_TEST_VARGS_TITLE, __VA_ARGS__)
+#define CTEST_INFO(...) set_varg(C_TEST_VARGS_INFO, __VA_ARGS__)
+#define CTEST_WARN(...) set_varg(C_TEST_VARGS_WARNING, __VA_ARGS__)
+#define CTEST_ON_ERROR(...) set_varg(C_TEST_VARGS_ERROR, __VA_ARGS__)
+#define CTEST_ON_SUCCESS(...) set_varg(C_TEST_VARGS_SUCCESS, __VA_ARGS__)
 
