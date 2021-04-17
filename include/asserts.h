@@ -1,6 +1,7 @@
 #include <stdint.h>
-static const uint64_t va_end_signature_u64 = 0x00000000df3f6198;
-#define VA_END_SIGNATURE (uint64_t *)&va_end_signature_u64
+
+uint64_t *get_va_end_signature();
+#define VA_END_SIGNATURE (uint64_t *)get_va_end_signature()
 //df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119
 typedef void (*free_on_error_fn)(void *);
 typedef void (*header_on_cb)(void *);
@@ -73,5 +74,5 @@ void on_abort(header_on_cb);
 void rm_on_abort();
 void end_tests();
 C_TEST_VARGS_MSG_HEADER *vargs_setter(int, ...);
-#define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, VA_END_SIGNATURE)
+#define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, NULL, VA_END_SIGNATURE)
 

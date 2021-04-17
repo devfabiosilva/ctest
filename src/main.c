@@ -26,7 +26,7 @@ int main(int argc, char **argv)
    double delta=1E-15;
    const char *str1="This is an simple string A";
    const char *str2="This is an simple string B";
-CTEST_SETTER("Teste", "Teste2");
+CTEST_SETTER(NULL,NULL,NULL,NULL,NULL);
    assert_true(2==2, "Function error A", "Success A");
    assert_false(10!=10, "Function error 2", "Sucess 2");
    rm_on_add_test();
