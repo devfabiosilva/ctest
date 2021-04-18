@@ -1,7 +1,10 @@
 #include <stdint.h>
 
 uint64_t *get_va_end_signature();
-#define VA_END_SIGNATURE (uint64_t *)get_va_end_signature()
+uint64_t *get_vas_end_signature();
+#define VA_END_SIGNATURE get_va_end_signature()
+#define VAS_END_SIGNATURE get_vas_end_signature()
+
 //df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119
 typedef void (*free_on_error_fn)(void *);
 typedef void (*header_on_cb)(void *);
@@ -15,7 +18,7 @@ typedef struct c_test_vargs_msg_t {
 typedef struct c_test_vargs_msg_header_t {
    uint32_t sig;
    uint32_t sig_chk;
-   C_TEST_VARGS_MSG **vargs_msgs;
+   C_TEST_VARGS_MSG *vargs_msgs[6];
 } C_TEST_VARGS_MSG_HEADER;
 
 void assert_true(int, const char *, const char *);
@@ -89,4 +92,11 @@ C_TEST_VARGS_MSG *set_varg(uint32_t, const char *, ...);
 #define CTEST_WARN(...) set_varg(C_TEST_VARGS_WARNING, __VA_ARGS__)
 #define CTEST_ON_ERROR(...) set_varg(C_TEST_VARGS_ERROR, __VA_ARGS__)
 #define CTEST_ON_SUCCESS(...) set_varg(C_TEST_VARGS_SUCCESS, __VA_ARGS__)
+
+void playground(const char *m1, const char *m2, ...);
+#define PLAYGROUND(m1, ...) playground(m1, __VA_ARGS__, NULL, VAS_END_SIGNATURE)
+
+// TEMPORARY FOR TESTS
+int load_test_vargs(C_TEST_VARGS_MSG_HEADER **, ...);
+int free_vargs(C_TEST_VARGS_MSG_HEADER *vargs);
 

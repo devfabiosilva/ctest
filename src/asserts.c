@@ -22,10 +22,13 @@ static void print_assert_not_equal_string_ignore_case(void *);
 static void print_assert_nullable(void *ctx);
 
 static void abort_tests();
-
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
 {
+   if (!data) {
+      printf("\nWARNING: NULL pointer. Aborting\n");
+      return;
+   }
    if (!data_size)
       return;
 
@@ -44,8 +47,6 @@ static void debug_hex_dump(unsigned char *data, size_t data_size)
 #define C_TEST_FALSE (int)(1!=1)
 
 #define C_TEST_HEADER_SIGNATURE (uint32_t)(0x0012E4992)
-
-static uint64_t va_end_signature_u64=0x00000000df3f6198;
 
 void *_c_test_ptr=NULL;
 
@@ -638,7 +639,8 @@ void rm_abort()
    #undef p
 }
 //
-#define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE)*sizeof(C_TEST_VARGS_MSG *)+sizeof(C_TEST_VARGS_MSG_HEADER)
+//#define C_VARGS_SZ (C_TEST_VARGS_MSG_SIGS_SIZE)*sizeof(C_TEST_VARGS_MSG *)+sizeof(C_TEST_VARGS_MSG_HEADER)
+#define C_VARGS_SZ sizeof(C_TEST_VARGS_MSG_HEADER)
 static inline int c_test_is_header_invalid(C_TEST_VARGS_MSG_HEADER *header)
 {
    return ((header->sig^C_TEST_VARGS_SETTER)|(header->sig_chk^C_TEST_VARGS_SETTER_CHK_SUM));
@@ -648,15 +650,16 @@ static C_TEST_VARGS_MSG_HEADER *c_test_vargs_create()
 {
    void *c_vargs;
 
+printf("\nI\n");
    if (!(c_vargs=malloc(C_VARGS_SZ)))
       return NULL;
 
    ((C_TEST_VARGS_MSG_HEADER *)c_vargs)->sig=C_TEST_VARGS_SETTER;
    ((C_TEST_VARGS_MSG_HEADER *)c_vargs)->sig_chk=C_TEST_VARGS_SETTER_CHK_SUM;
-
-   memset(*((C_TEST_VARGS_MSG_HEADER *)c_vargs)->vargs_msgs, 0, C_TEST_VARGS_MSG_SIGS_SIZE+1);
+printf("\nJ\n");
+   memset(((C_TEST_VARGS_MSG_HEADER *)c_vargs)->vargs_msgs, 0, C_TEST_VARGS_MSG_SIGS_SIZE+1);
+printf("\nZ\n");
    return (C_TEST_VARGS_MSG_HEADER *)c_vargs;
-
 }
 
 static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **test_vargs_msg, uint32_t sig)
@@ -684,7 +687,7 @@ static uint32_t check_msgsig(C_TEST_VARGS_MSG *va_msg)
    return 0;
 }
 
-static int free_vargs(C_TEST_VARGS_MSG_HEADER *vargs)
+int free_vargs(C_TEST_VARGS_MSG_HEADER *vargs)
 {
    int err=0;
 
@@ -828,10 +831,11 @@ while_vargs_continue:
          }
    }
    va_end(args);
-
+printf("\nC\n");
    if (argc>2)
       argc-=2;
    else if (argc==2) {
+printf("\nD\n");
       if (!err)
          return (C_TEST_VARGS_MSG_HEADER *)VA_END_SIGNATURE;
 
@@ -841,8 +845,9 @@ while_vargs_continue:
       ERROR_MSG("ERROR: vargs_setter must be initialized only with CTEST_SETTER macro.");
       return NULL;
    }
-
+printf("\nE\n");
    va_copy(args, args_cpy);
+printf("\nF\n");
    va_start(args, initial);
    if (err) {
 vargs_setter_RET:
@@ -861,21 +866,22 @@ vargs_setter_RET:
       va_end(args);
       return NULL;
    }
-
+printf("\nG\n");
    if (!(ret=c_test_vargs_create())) {
       ERROR_MSG("Fatal: Can't create vargs setter ...")
       goto vargs_setter_EXIT1;
    }
-
+printf("\nH\n");
    vargs_msgs=ret->vargs_msgs;
-
+printf("\nA\n");
    for (initial=0;initial<argc;initial++)
       if (!check_msgsig(*(vargs_msgs++)=(C_TEST_VARGS_MSG *)va_arg(args, void *))) {
+printf("\nB\n");
          memset(ret->vargs_msgs, 0, C_TEST_VARGS_MSG_SIGS_SIZE*sizeof(C_TEST_VARGS_MSG *));
          free_vargs(ret);
          goto vargs_setter_EXIT1;
       }
-
+printf("\nB\n");
    va_end(args);
    return ret;
 
@@ -887,6 +893,60 @@ vargs_setter_EXIT1:
    goto vargs_setter_RET;
 
 #undef MAX_ARG_OVF
+}
+
+#define LOAD_TEST_VARGS_ERROR_TOO_MANY_ARGS 10
+#define LOAD_TEST_VARGS_ERROR_MISSING_ARGUMENTS 11
+#define LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_1 12
+#define LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_2 13
+#define LOAD_TEST_VARGS_ERROR_IS_NULL 14
+#define LOAD_TEST_VARGS_ERROR_HEADER_INVALID 15
+#define LOAD_TEST_VARGS_END_SIGNATURE -15
+int load_test_vargs(C_TEST_VARGS_MSG_HEADER **vargs, ...)
+{
+   va_list ap;
+   int i, idx;
+   void *ptr[3];
+
+#define MAX_ARG 3+1
+   *vargs=NULL;
+   va_start(ap, vargs);
+   for (i=0;i<MAX_ARG;) {
+      if (i==(MAX_ARG-1)) {
+         va_end(ap);
+         return LOAD_TEST_VARGS_ERROR_TOO_MANY_ARGS;
+      }
+      if ((ptr[i++]=(void *)va_arg(ap, void *))==VAS_END_SIGNATURE)
+         break;
+   }
+   va_end(ap);
+#undef MAX_ARG
+
+   if (i==1)
+      return LOAD_TEST_VARGS_ERROR_MISSING_ARGUMENTS;
+   else if (i==2) {
+      idx=0;
+
+load_test_vargs_RET1:
+      if (ptr[idx++]!=NULL)
+         return LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_1;
+
+      if (ptr[idx]!=VAS_END_SIGNATURE)
+         return LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_2;
+   } else {
+      idx=1;
+      goto load_test_vargs_RET1;
+   }
+
+   if (ptr[1]==VAS_END_SIGNATURE)
+      return LOAD_TEST_VARGS_END_SIGNATURE;
+   else if (!ptr[0])
+      return LOAD_TEST_VARGS_ERROR_IS_NULL;
+   else if (c_test_is_header_invalid(ptr[0]))
+      return LOAD_TEST_VARGS_ERROR_HEADER_INVALID;
+
+   *vargs=(C_TEST_VARGS_MSG_HEADER *)ptr[0];
+   return 0;
 }
 
 //
@@ -1290,6 +1350,69 @@ void assert_not_null(
    assert_nullable(result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_NULL, free_on_error_cb, free_on_error_ctx, on_error_msg, on_success);
 }
 
-uint64_t *get_va_end_signature() {
+uint64_t *get_va_end_signature()
+{
+   static uint64_t va_end_signature_u64=0x00000000df3f6198;
    return &va_end_signature_u64;
 }
+
+uint64_t *get_vas_end_signature()
+{
+//67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450
+   static uint64_t vas_end_signature_u64=0x0000000167abdd72;
+   return &vas_end_signature_u64;
+}
+
+
+void playground(const char *m1, const char *m2, ...)
+{
+   va_list args;
+   int i, idx;
+   void *ptr[3];
+
+   printf("\nParameter 1 = %s\nParameter 2 = %s\n", m1, m2);
+
+#define MAX_ARG 3+1
+   va_start(args, m2);
+   for (i=0;i<MAX_ARG;) {
+      if (i==(MAX_ARG-1)) {
+         printf("\nToo many arguments %d\n", i);
+         va_end(args);
+         return;
+      }
+      if ((ptr[i++]=(void *)va_arg(args, void *))==VAS_END_SIGNATURE)
+         break;
+   }
+   va_end(args);
+#undef MAX_ARG
+
+printf("\nARGS %d\n", i);
+   if (i==1) {
+      printf("\nMissing argument\n");
+      return;
+   } else if (i==2) {
+      idx=0;
+playground_RET1:
+
+      if (ptr[idx++]!=NULL) {
+         printf("\nWrong argument A %d\n", idx);
+         return;
+      }
+
+      if (ptr[idx]!=VAS_END_SIGNATURE) {
+         printf("\nWrong argument B %d\n", idx);
+         return;
+      }
+   } else {
+      idx=1;
+      goto playground_RET1;
+   }
+
+   if (ptr[1]==VAS_END_SIGNATURE)
+      printf("\nArgument is VAS_END_SIGNATURE\n");
+   else if (ptr[0]==NULL)
+      printf("\nArgument is NULL\n");
+   else
+      (c_test_is_header_invalid(ptr[0]))?printf("\nHeader test is unknown or invalid\n"):printf("\nHeader pointer is ok\n");
+}
+

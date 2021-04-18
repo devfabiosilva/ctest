@@ -33,13 +33,41 @@ void cb_func_on_error(void *ctx)
 int main(int argc, char **argv)
 {
    on_abort(cb_func_on_error);
+   C_TEST_VARGS_MSG_HEADER *vargs;
+   int err;
 
    //assert_true(0, "Error. It is false", "Success. It is true");
+//PLAYGROUND("Test1", "Test2");
+//CTEST_SETTER(NULL, "Wrong Object")
+err=load_test_vargs(&vargs, CTEST_SETTER(NULL, "Wrong Object"), NULL, VAS_END_SIGNATURE);
+assert_equal_int(14, err, "Error. Value are not equal", "Error success");
+assert_null(vargs, NULL, NULL, "Expected: \"vargs == NULL\"", "vargs=NULL (Success)");
+printf("\nAqui2\n");
+   CTEST_TITLE("This is a title with value %d", err+5);
+printf("\nAqui3\n");
 
+CTEST_SETTER(
+   CTEST_TITLE("This is a title with value %d", err+5)
+);
+printf("\nAqui\n");
+
+err=load_test_vargs(&vargs, CTEST_SETTER(
+   CTEST_TITLE("This is a title with value %d", err+5)
+), NULL, VAS_END_SIGNATURE);
+assert_equal_int(0, err, "Error. Expected success", "Error success");
+assert_not_null(vargs, NULL, NULL, "Expected not NULL, but NULL found", "vargs address allocated");
+err=free_vargs(vargs);
+assert_equal_int(0, err, "Error found in free_vargs", "Error free_vargs success");
+
+
+//CTEST_SETTER(NULL, "Wrong Object");
+/*
    varg_msg=CTEST_TITLE("shghg");
    assert_not_null(varg_msg, NULL, NULL, "Error. Expected not null", "varg_msg != NULL -> Success");
 
    assert_null(CTEST_SETTER(varg_msg, NULL, "NULL"), NULL, NULL, "Error. Expected = NULL", "CTEST_SETTER: Success");
+   assert_true(CTEST_SETTER(NULL, VA_END_SIGNATURE)==(void *)VA_END_SIGNATURE, "Error. Expected = NULL", "CTEST_SETTER: Success");
+*/
    return 0;
 /*
    double delta=1E-15;
