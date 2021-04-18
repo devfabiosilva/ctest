@@ -22,7 +22,7 @@ void cb_func_on_error(void *ctx)
 }
 */
 
-C_TEST_VARGS_MSG *varg_msg=NULL;
+void *varg_msg=NULL;
 
 void cb_func_on_error(void *ctx)
 {
@@ -33,31 +33,66 @@ void cb_func_on_error(void *ctx)
 int main(int argc, char **argv)
 {
    on_abort(cb_func_on_error);
-   C_TEST_VARGS_MSG_HEADER *vargs;
+   void *vargs;
+   char *msg;
    int err;
 
-   //assert_true(0, "Error. It is false", "Success. It is true");
-//PLAYGROUND("Test1", "Test2");
-//CTEST_SETTER(NULL, "Wrong Object")
-err=load_test_vargs(&vargs, CTEST_SETTER(NULL, "Wrong Object"), NULL, VAS_END_SIGNATURE);
-assert_equal_int(14, err, "Error. Value are not equal", "Error success");
-assert_null(vargs, NULL, NULL, "Expected: \"vargs == NULL\"", "vargs=NULL (Success)");
-printf("\nAqui2\n");
-   CTEST_TITLE("This is a title with value %d", err+5);
-printf("\nAqui3\n");
+   err=load_test_vargs_for_test(&vargs, CTEST_SETTER(NULL, "Wrong Object"));
+   printf("\nERR=%d\n", err);
+   assert_equal_int(14, err, "Error. Value are not equal", "Error success");
+   assert_null(vargs, NULL, NULL, "Expected: \"vargs == NULL\"", "vargs=NULL (Success)");
+   err=load_test_vargs_for_test(&vargs, CTEST_SETTER(
+      CTEST_TITLE("This is a title with value %d", err+5)
+   ));
+   assert_equal_int(0, err, "Error. Expected success", "Error success");
+   assert_not_null(vargs, NULL, NULL, "Expected not NULL, but NULL found", "vargs address allocated");
+   msg=ctest_setter_has_title(vargs);
+   assert_not_null(msg, NULL, NULL, "Error. msg pointer should be NOT NULL", "msg pointer success");
+   printf("Message passed %s\n", msg);
 
-CTEST_SETTER(
-   CTEST_TITLE("This is a title with value %d", err+5)
-);
-printf("\nAqui\n");
+   msg=ctest_setter_has_info(vargs);
 
-err=load_test_vargs(&vargs, CTEST_SETTER(
-   CTEST_TITLE("This is a title with value %d", err+5)
-), NULL, VAS_END_SIGNATURE);
-assert_equal_int(0, err, "Error. Expected success", "Error success");
-assert_not_null(vargs, NULL, NULL, "Expected not NULL, but NULL found", "vargs address allocated");
-err=free_vargs(vargs);
-assert_equal_int(0, err, "Error found in free_vargs", "Error free_vargs success");
+   assert_null(msg, NULL, NULL, "Error. Info should be not set and return NULL", "INFO NULL pointer expected success");
+
+   err=free_vargs_for_test(vargs);
+   assert_equal_int(0, err, "Error found in free_vargs", "Error free_vargs success");
+
+   err=load_test_vargs_for_test(&vargs, CTEST_SETTER(
+      CTEST_TITLE("This is a title with value %d", err+5),
+      CTEST_INFO("This is an INFO title"),
+      CTEST_WARN("This is a WARN message"),
+      CTEST_ON_ERROR("This is a message when error occurs"),
+      CTEST_ON_SUCCESS("This is a message when error occurs")
+   ));
+
+   assert_equal_int(0, err, "Second step error. Expected success", "Sencond step error success");
+
+   msg=ctest_setter_has_info(vargs);
+   assert_not_null(msg, NULL, NULL, "Second step INFO error. Message should be NOT NULL", "Second step INFO success");
+
+   printf("\nINFO text message %s\n", msg);
+
+   msg=ctest_setter_has_warn(vargs);
+   assert_not_null(msg, NULL, NULL, "Second step WARN error. Message should be NOT NULL", "Second step WARN success");
+
+   printf("\nWARN text message %s\n", msg);
+
+   msg=ctest_setter_has_onerror(vargs);
+   assert_not_null(msg, NULL, NULL, "Second step ON ERROR error. Message should be NOT NULL", "Second step ON ERROR success");
+
+   printf("\nON ERROR text message %s\n", msg);
+
+   msg=ctest_setter_has_onsuccess(vargs);
+   assert_not_null(msg, NULL, NULL, "Second step ON SUCCESS error. Message should be NOT NULL", "Second step ON SUCCESS success");
+
+   printf("\nON SUCCESS text message %s\n", msg);
+
+   err=free_vargs_for_test(vargs);
+   assert_equal_int(0, err, "Second step error found in free_vargs", "Second step error free_vargs success");
+
+   show_message_text();
+
+   end_tests();
 
 
 //CTEST_SETTER(NULL, "Wrong Object");
