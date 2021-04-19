@@ -920,9 +920,9 @@ vargs_setter_EXIT1:
 #define LOAD_TEST_VARGS_END_SIGNATURE -15
 static int load_test_vargs(void **vargs, ...)
 {
-   va_list ap;
-   int i, idx;
+   int i;
    void *ptr[3];
+   va_list ap;
 
 #define MAX_ARG 3+1
    *vargs=NULL;
@@ -940,25 +940,22 @@ static int load_test_vargs(void **vargs, ...)
 
    if (i==1)
       return LOAD_TEST_VARGS_ERROR_MISSING_ARGUMENTS;
-   else if (i==2) {
-      idx=0;
 
-load_test_vargs_RET1:
-      if (ptr[idx++]!=NULL)
-         return LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_1;
+   (i==2)?(i=0):(i=1);
 
-      if (ptr[idx]!=VAS_END_SIGNATURE)
-         return LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_2;
-   } else {
-      idx=1;
-      goto load_test_vargs_RET1;
-   }
+   if (ptr[i++])
+      return LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_1;
+
+   if (ptr[i]!=VAS_END_SIGNATURE)
+      return LOAD_TEST_VARGS_ERROR_LOAD_WRONG_ARGUMENT_2;
 
    if (ptr[1]==VAS_END_SIGNATURE)
       return LOAD_TEST_VARGS_END_SIGNATURE;
-   else if (!ptr[0])
+
+   if (!ptr[0])
       return LOAD_TEST_VARGS_ERROR_IS_NULL;
-   else if (c_test_is_header_invalid(ptr[0]))
+
+   if (c_test_is_header_invalid(ptr[0]))
       return LOAD_TEST_VARGS_ERROR_HEADER_INVALID;
 
    *vargs=(C_TEST_VARGS_MSG_HEADER *)ptr[0];
