@@ -827,7 +827,6 @@ void *vargs_setter(int initial, ...)
          if ((MAX_ARG_OVF-2)>argc)
             ERROR_MSG_FMT(VARG_ERROR_MSG_NULL_PARM, argc)
 
-         continue;
       }
 
 while_vargs_continue:
@@ -859,7 +858,7 @@ vargs_setter_RET:
       ERROR_MSG("Error(s) occurred. Closing arguments before quit ...");
 
       for (initial=0;initial<argc;initial++)
-         if ((err=close_varg((C_TEST_VARGS_MSG *)(v=(void *)va_arg(args, void *)))))
+         if ((err=close_varg((C_TEST_VARGS_MSG *)(v=(void *)va_arg(args, void *))))) {
             if (err==CLOSE_VARG_ERR_WRONG_SIG)
                if (!c_test_is_header_invalid((C_TEST_VARGS_MSG_HEADER *)v)) {
                   ERROR_MSG("Error: Found forbidden arguments inside argument setter. Trying to close");
@@ -868,6 +867,10 @@ vargs_setter_RET:
                   else INFO_MSG("Closed success!");
                }
 
+         } else
+            INFO_MSG_FMT("Closing argument %d ...", initial)
+
+      ERROR_MSG("Closed all arguments");
       va_end(args);
       return NULL;
    }
@@ -879,13 +882,21 @@ vargs_setter_RET:
 
    vargs_msgs=ret->vargs_msgs;
 
-   for (initial=0;initial<argc;initial++)
-      if (!check_msgsig(*(vargs_msgs++)=(C_TEST_VARGS_MSG *)va_arg(args, void *))) {
-
-         memset(ret->vargs_msgs, 0, C_TEST_VARGS_MSG_SIGS_SIZE*sizeof(C_TEST_VARGS_MSG *));
+   for (initial=0;initial<argc;initial++) {
+      if (!check_msgsig((C_TEST_VARGS_MSG *)(v=(void *)va_arg(args, void *)))) {
          free_vargs(ret);
+
          goto vargs_setter_EXIT1;
       }
+
+      if (check_vargs_sigmsg_exists(ret->vargs_msgs, ((C_TEST_VARGS_MSG *)v)->sig)) {
+         ERROR_MSG("ERROR: Repeated arguments. Closing ...")
+         goto vargs_setter_EXIT1;
+      }
+
+      *(vargs_msgs++)=(C_TEST_VARGS_MSG *)v;
+
+   }
 
    va_end(args);
    return (void *)ret;
@@ -1363,7 +1374,6 @@ uint64_t *get_va_end_signature()
 
 uint64_t *get_vas_end_signature()
 {
-//67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450
    static uint64_t vas_end_signature_u64=0x0000000167abdd72;
    return &vas_end_signature_u64;
 }

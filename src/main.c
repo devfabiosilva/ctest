@@ -32,11 +32,11 @@ void cb_func_on_error(void *ctx)
 
 int main(int argc, char **argv)
 {
-   on_abort(cb_func_on_error);
    void *vargs;
    char *msg;
    int err;
 
+   on_abort(cb_func_on_error);
    err=load_test_vargs_for_test(&vargs, CTEST_SETTER(NULL, "Wrong Object"));
    printf("\nERR=%d\n", err);
    assert_equal_int(14, err, "Error. Value are not equal", "Error success");
