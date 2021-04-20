@@ -8,18 +8,18 @@
 #include <time.h>
 #include <math.h>
 
-static void print_assert_equal_int(void *);
-static void print_assert_equal_long_int(void *);
-static void print_assert_equal_byte(void *);
-static void print_assert_not_equal_int(void *);
-static void print_assert_double(void *);
-static void print_assert_not_equal_long_int(void *);
-static void print_assert_not_equal_byte(void *);
-static void print_assert_equal_string(void *);
-static void print_assert_not_equal_string(void *);
-static void print_assert_equal_string_ignore_case(void *);
-static void print_assert_not_equal_string_ignore_case(void *);
-static void print_assert_nullable(void *ctx);
+static void print_assert_equal_int(void *, void *);
+static void print_assert_equal_long_int(void *, void *);
+static void print_assert_equal_byte(void *, void *);
+static void print_assert_not_equal_int(void *, void *);
+static void print_assert_double(void *, void *);
+static void print_assert_not_equal_long_int(void *, void *);
+static void print_assert_not_equal_byte(void *, void *);
+static void print_assert_equal_string(void *, void *);
+static void print_assert_not_equal_string(void *, void *);
+static void print_assert_equal_string_ignore_case(void *, void *);
+static void print_assert_not_equal_string_ignore_case(void *, void *);
+static void print_assert_nullable(void *, void *);
 
 static void abort_tests();
 /*
@@ -76,7 +76,7 @@ typedef struct c_test_fn_description {
    uint32_t type;
    const char *fn_name;
    size_t blk_size;
-   void (*cb)(void *);
+   void (*cb)(void *, void *);
 } C_TEST_FN_DESCRIPTION;
 
 typedef C_TEST_FN_DESCRIPTION C_TEST_FN_META;
@@ -347,7 +347,7 @@ static void abort_tests() {
    exit(1);
 }
 
-static void begin_test()
+static void begin_test(void *vas)
 {
    C_TEST_FN *p, *q;
    time_t t;
@@ -367,7 +367,7 @@ static void begin_test()
 
    q=&p[((C_TEST_HEADER *)_c_test_ptr)->next++];
    TITLE_MSG_FMT("Testing %d -> \"%s\" (%p)...", ((C_TEST_HEADER *)_c_test_ptr)->next, q->meta.fn_name, q)
-   q->meta.cb(q);
+   q->meta.cb(q, vas);
 
    TITLE_MSG_FMT("Duration (ms): %llu\n", (uint64_t)time(NULL)-t)
 }
@@ -792,7 +792,7 @@ void *vargs_setter(int initial, ...)
    va_start(args, initial);
    va_copy(args_cpy, args);
 #define MAX_ARG_OVF (size_t)C_TEST_VARGS_MSG_SIGS_SIZE+2
-   while ((argc++)<MAX_ARG_OVF) {
+   while ((argc++)<(MAX_ARG_OVF+1)) {
 
       if (argc>MAX_ARG_OVF) {
          argc--;
@@ -854,6 +854,8 @@ while_vargs_continue:
    va_copy(args, args_cpy);
    va_start(args, initial);
    if (err) {
+      ret=NULL;
+
 vargs_setter_RET:
       ERROR_MSG("Error(s) occurred. Closing arguments before quit ...");
 
@@ -870,6 +872,11 @@ vargs_setter_RET:
          } else
             INFO_MSG_FMT("Closing argument %d ...", initial)
 
+      if (ret) {
+         INFO_MSG_FMT("Finally close vargs handler at address (%p)", ret)
+         free(ret);// All children was cleared using close_varg. Here we will NOT use free_vargs() in this case
+      }
+
       ERROR_MSG("Closed all arguments");
       va_end(args);
       return NULL;
@@ -883,13 +890,7 @@ vargs_setter_RET:
    vargs_msgs=ret->vargs_msgs;
 
    for (initial=0;initial<argc;initial++) {
-      if (!check_msgsig((C_TEST_VARGS_MSG *)(v=(void *)va_arg(args, void *)))) {
-         free_vargs(ret);
-
-         goto vargs_setter_EXIT1;
-      }
-
-      if (check_vargs_sigmsg_exists(ret->vargs_msgs, ((C_TEST_VARGS_MSG *)v)->sig)) {
+      if (check_vargs_sigmsg_exists(ret->vargs_msgs, ((C_TEST_VARGS_MSG *)(v=(void *)va_arg(args, void *)))->sig)) {
          ERROR_MSG("ERROR: Repeated arguments. Closing ...")
          goto vargs_setter_EXIT1;
       }
@@ -967,7 +968,7 @@ static int load_test_vargs(void **vargs, ...)
    if (((C_TEST_HEADER *)_c_test_ptr)->on_test_fn)\
       ((C_TEST_HEADER *)_c_test_ptr)->on_test_fn(ctx);
 
-static void print_assert_int(void *ctx, int is_not_equal)
+static void print_assert_int(void *ctx, void *vas, int is_not_equal)
 {
    C_TEST_TYPE_INT *type=(C_TEST_TYPE_INT *)ctx;
    int error;
@@ -988,11 +989,11 @@ static void print_assert_int(void *ctx, int is_not_equal)
 
 }
 
-static void print_assert_equal_int(void *ctx) { print_assert_int(ctx, 0); }
+static void print_assert_equal_int(void *ctx, void *vas) { print_assert_int(ctx, vas, 0); }
 
-static void print_assert_not_equal_int(void *ctx) { print_assert_int(ctx, 1); }
+static void print_assert_not_equal_int(void *ctx, void *vas) { print_assert_int(ctx, vas, 1); }
 
-static void print_assert_longint(void *ctx, int is_not_equal)
+static void print_assert_longint(void *ctx, void *vas, int is_not_equal)
 {
    C_TEST_TYPE_LONG_INT *type=(C_TEST_TYPE_LONG_INT *)ctx;
    int error;
@@ -1012,11 +1013,11 @@ static void print_assert_longint(void *ctx, int is_not_equal)
    SUCCESS_MSG(type->header.on_success)
 }
 
-static void print_assert_equal_long_int(void *ctx) { print_assert_longint(ctx, 0); }
+static void print_assert_equal_long_int(void *ctx, void *vas) { print_assert_longint(ctx, vas, 0); }
 
-static void print_assert_not_equal_long_int(void *ctx) { print_assert_longint(ctx, 1); }
+static void print_assert_not_equal_long_int(void *ctx, void *vas) { print_assert_longint(ctx, vas, 1); }
 
-static void print_assert_double(void *ctx)
+static void print_assert_double(void *ctx, void *vas)
 {
    C_TEST_TYPE_DOUBLE *type=(C_TEST_TYPE_DOUBLE *)ctx;
    int error=0;
@@ -1037,7 +1038,7 @@ static void print_assert_double(void *ctx)
    SUCCESS_MSG(type->header.on_success)
 }
 
-static void print_assert_byte(void *ctx, int is_not_equal)
+static void print_assert_byte(void *ctx, void *vas, int is_not_equal)
 {
    C_TEST_TYPE_BYTE *type=(C_TEST_TYPE_BYTE *)ctx;
    int tst;
@@ -1061,11 +1062,11 @@ static void print_assert_byte(void *ctx, int is_not_equal)
    SUCCESS_MSG(type->header.on_success)
 }
 
-static void print_assert_equal_byte(void *ctx) { print_assert_byte(ctx, 0); }
+static void print_assert_equal_byte(void *ctx, void *vas) { print_assert_byte(ctx, vas, 0); }
 
-static void print_assert_not_equal_byte(void *ctx) { print_assert_byte(ctx, 1); }
+static void print_assert_not_equal_byte(void *ctx, void *vas) { print_assert_byte(ctx, vas, 1); }
 
-static void print_assert_string(void *ctx, int is_not_equal, int is_ignore_case)
+static void print_assert_string(void *ctx, void *vas, int is_not_equal, int is_ignore_case)
 {
    C_TEST_TYPE_STRING *type=(C_TEST_TYPE_STRING *)ctx;
    int tst;
@@ -1085,15 +1086,15 @@ static void print_assert_string(void *ctx, int is_not_equal, int is_ignore_case)
    SUCCESS_MSG(type->header.on_success)
 }
 
-static void print_assert_equal_string(void *ctx) { print_assert_string(ctx, 0, 0); }
+static void print_assert_equal_string(void *ctx, void *vas) { print_assert_string(ctx, vas, 0, 0); }
 
-static void print_assert_not_equal_string(void *ctx) { print_assert_string(ctx, 1, 0); }
+static void print_assert_not_equal_string(void *ctx, void *vas) { print_assert_string(ctx, vas, 1, 0); }
 
-static void print_assert_equal_string_ignore_case(void *ctx) { print_assert_string(ctx, 0, 1); }
+static void print_assert_equal_string_ignore_case(void *ctx, void *vas) { print_assert_string(ctx, vas, 0, 1); }
 
-static void print_assert_not_equal_string_ignore_case(void *ctx) { print_assert_string(ctx, 1, 1); }
+static void print_assert_not_equal_string_ignore_case(void *ctx, void *vas) { print_assert_string(ctx, vas, 1, 1); }
 
-static void print_assert_nullable(void *ctx)
+static void print_assert_nullable(void *ctx, void *vas)
 {
    C_TEST_TYPE_NULLABLE *type=(C_TEST_TYPE_NULLABLE *)ctx;
    int error;
@@ -1158,7 +1159,7 @@ add_test_EXIT1:
 
 #define TEST_BEGIN \
    add_test((void *)&type); \
-   begin_test();
+   begin_test(vas);
 
 
 static void assert_equal_bool(
@@ -1168,6 +1169,7 @@ static void assert_equal_bool(
    const char *on_success
 )
 {
+   void *vas=NULL;
    static C_TEST_TYPE_BOOL type;
 
    (result==C_TEST_TRUE)?(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE):(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE);
@@ -1181,6 +1183,7 @@ void assert_true(int value, const char *on_error_msg, const char *on_success) { 
 
 static void assert_int(int expected, int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
 {
+   void *vas=NULL;
    static C_TEST_TYPE_INT type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
@@ -1200,6 +1203,7 @@ void assert_not_equal_int(int expected, int result, const char *on_error_msg, co
 
 static void assert_longint(long long int expected, long long int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
 {
+   void *vas=NULL;
    static C_TEST_TYPE_LONG_INT type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
@@ -1219,6 +1223,7 @@ void assert_not_equal_longint(long long int expected, long long int result, cons
 
 static void assert_double(double expected, double result, double delta, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
 {
+   void *vas=NULL;
    static C_TEST_TYPE_DOUBLE type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
@@ -1249,6 +1254,7 @@ static void assert_byte(
    const char *on_success
 )
 {
+   void *vas=NULL;
    static C_TEST_TYPE_BYTE type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
@@ -1293,6 +1299,7 @@ static void assert_string(
    const char *on_success
 )
 {
+   void *vas=NULL;
    static C_TEST_TYPE_STRING type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
@@ -1329,6 +1336,7 @@ static void assert_nullable(
    const char *on_success
 )
 {
+   void *vas=NULL;
    static C_TEST_TYPE_NULLABLE type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));

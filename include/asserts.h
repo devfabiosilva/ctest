@@ -84,6 +84,7 @@ void *set_varg(uint32_t, const char *, ...);
 // TEMPORARY FOR TESTS
 
  int load_test_vargs_for_test(void **, ...);
+ int load_test_vargs_for_test_v2(void **, ...);
  int free_vargs_for_test(void *);
  char *ctest_setter_has_title(void *);
  char *ctest_setter_has_info(void *);
