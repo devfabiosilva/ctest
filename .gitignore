@@ -1,6 +1,7 @@
 # Prerequisites
 *.d
-
+main.c.bck
+test
 # Object files
 *.o
 *.ko

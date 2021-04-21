@@ -8,10 +8,14 @@ uint64_t *get_vas_end_signature();
 typedef void (*free_on_error_fn)(void *);
 typedef void (*header_on_cb)(void *);
 
-void assert_true(int, const char *, const char *);
-void assert_false(int, const char *, const char *, ...);
-void assert_equal_int(int, int, const char *, const char *);
-void assert_not_equal_int(int, int, const char *, const char *);
+//void assert_true(int, const char *, const char *);
+void assert_true(int, ...);
+//void assert_false(int, const char *, const char *, ...);
+void assert_false(int, ...);
+//void assert_equal_int(int, int, const char *, const char *);
+void assert_equal_int(int, int, ...);
+//void assert_not_equal_int(int, int, const char *, const char *);
+void assert_not_equal_int(int, int, ...);
 void assert_equal_longint(long long int, long long int, const char *, const char *);
 void assert_not_equal_longint(long long int, long long int, const char *, const char *);
 void assert_equal_double(double, double, double, const char *, const char *);
@@ -79,7 +83,11 @@ void *set_varg(uint32_t, const char *, ...);
 #define CTEST_WARN(...) set_varg(C_TEST_VARGS_WARNING, __VA_ARGS__)
 #define CTEST_ON_ERROR(...) set_varg(C_TEST_VARGS_ERROR, __VA_ARGS__)
 #define CTEST_ON_SUCCESS(...) set_varg(C_TEST_VARGS_SUCCESS, __VA_ARGS__)
-#define C_ASSERT_FALSE(value, on_error, ...) assert_false(value, on_error, __VA_ARGS__, NULL)
+#define C_ASSERT_FALSE(...) assert_false(__VA_ARGS__, VAS_END_SIGNATURE)
+//#define C_ASSERT_FALSE(value, on_error, ...) assert_false(value, on_error, __VA_ARGS__, NULL)
+#define C_ASSERT_TRUE(...) assert_true(__VA_ARGS__, VAS_END_SIGNATURE)
+#define C_ASSERT_EQUAL_INT(expected, ...) assert_equal_int(expected, __VA_ARGS__, VAS_END_SIGNATURE)
+#define C_ASSERT_NOT_EQUAL_INT(expected, ...) assert_not_equal_int(expected, __VA_ARGS__, VAS_END_SIGNATURE)
 
 #ifdef DEBUG_TEST
 // TEMPORARY FOR TESTS

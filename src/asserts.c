@@ -8,10 +8,11 @@
 #include <time.h>
 #include <math.h>
 
-static void print_assert_equal_int(void *, void *);
+//static void print_assert_equal_int(void *, void *);
+static void print_assert_int(void *, void *);
 static void print_assert_equal_long_int(void *, void *);
 static void print_assert_equal_byte(void *, void *);
-static void print_assert_not_equal_int(void *, void *);
+//static void print_assert_not_equal_int(void *, void *);
 static void print_assert_double(void *, void *);
 static void print_assert_not_equal_long_int(void *, void *);
 static void print_assert_not_equal_byte(void *, void *);
@@ -22,8 +23,6 @@ static void print_assert_not_equal_string_ignore_case(void *, void *);
 static void print_assert_nullable(void *, void *);
 
 static void abort_tests();
-
-static char *parse_vas_string_if_exists(void *, uint32_t);
 
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
@@ -91,9 +90,9 @@ typedef struct c_test_type_header_t {
    C_TEST_FN_DESCRIPTION desc;
 
    const char
-   *on_error,
-   *on_success,
-   *on_warning;
+   *on_error, // Remove
+   *on_success, //Remove
+   *on_warning; // Remove
 
 } C_TEST_TYPE_HEADER;
 
@@ -201,14 +200,19 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t
 #define ASSERT_NOT_EQUAL_STRING_IGNORE_CASE "assert_not_equal_string_ignore_case"
 #define ASSERT_NULL "assert_null"
 #define ASSERT_NOT_NULL "assert_not_null"
+
+#define TYPE_ASSERT_EQUAL_INT 0
+#define TYPE_ASSERT_TRUE 1
+#define TYPE_ASSERT_FALSE 2
+#define TYPE_ASSERT_NOT_EQUAL_INT 6
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
-   {0, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_equal_int},
-   {1, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_equal_int},
-   {2, ASSERT_FALSE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_equal_int},
+   {TYPE_ASSERT_EQUAL_INT, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_int/*print_assert_equal_int*/},
+   {TYPE_ASSERT_TRUE, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_int/*print_assert_equal_int*/},
+   {TYPE_ASSERT_FALSE, ASSERT_FALSE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_int/*print_assert_equal_int*/},
    {3, ASSERT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_equal_long_int},
    {4, ASSERT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_double},
    {5, ASSERT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_equal_byte},
-   {6, ASSERT_NOT_EQUAL_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_not_equal_int},
+   {TYPE_ASSERT_NOT_EQUAL_INT, ASSERT_NOT_EQUAL_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_int/*print_assert_not_equal_int*/},
    {7, ASSERT_NOT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_not_equal_long_int},
    {8, ASSERT_NOT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_double},
    {9, ASSERT_NOT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_not_equal_byte},
@@ -331,7 +335,7 @@ static void end_tests_util(int abort)
          if (((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn)
             ((C_TEST_HEADER *)_c_test_ptr)->on_end_test_fn(_c_test_ptr);
 
-         TITLE_MSG_FMT("*** END TESTS ***\nAt: %s", ctime(&t))
+         TITLE_MSG_FMT("*** END TESTS ***\nTotal: %d\nAt: %s", ((C_TEST_HEADER *)_c_test_ptr)->tests, ctime(&t))
          TITLE_MSG_FMT("Total time: %llu\n", (uint64_t)t-((C_TEST_HEADER *)_c_test_ptr)->initial_timestamp)
       }
 
@@ -660,19 +664,6 @@ static inline int c_test_is_header_invalid(C_TEST_VARGS_MSG_HEADER *header)
    return ((header->sig^C_TEST_VARGS_SETTER)|(header->sig_chk^C_TEST_VARGS_SETTER_CHK_SUM));
 }
 
-static char *parse_vas_string_if_exists(void *ctest_setter, uint32_t sig)
-{
-   C_TEST_VARGS_MSG *res;
-
-   if (!ctest_setter)
-      return NULL;
-
-   if ((res=check_vargs_sigmsg_exists(((C_TEST_VARGS_MSG_HEADER *)ctest_setter)->vargs_msgs, sig)))
-     return res->msg;
-
-   return NULL;
-}
-
 static C_TEST_VARGS_MSG_HEADER *c_test_vargs_create()
 {
    void *c_vargs;
@@ -987,41 +978,79 @@ static int load_test_vargs(void **vargs, ...)
    return 0;
 }
 
+static char *parse_vas_msg(int *msg_sz, void *vas, uint32_t sig)
+{
+   C_TEST_VARGS_MSG *res;
+   char *p;
+
+   *msg_sz=0;
+
+   if (!vas)
+      return NULL;
+
+   p=NULL;
+   if ((res=check_vargs_sigmsg_exists(((C_TEST_VARGS_MSG_HEADER *)vas)->vargs_msgs, sig)))
+      if (res->msg_sz>0) {
+         p=res->msg;
+         *msg_sz=res->msg_sz;
+      }
+
+   return p;
+}
+
 //
 #define PRINT_CALLBACK \
    if (((C_TEST_HEADER *)_c_test_ptr)->on_test_fn)\
       ((C_TEST_HEADER *)_c_test_ptr)->on_test_fn(ctx);
 
-static void print_assert_int(void *ctx, void *vas, int is_not_equal)
+#define SHOW_USER_NOTIFICATION \
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_TITLE)))\
+      TITLE_MSG_FMT("%.*s", p_sz, p)\
+\
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_INFO)))\
+      INFO_MSG_FMT("%.*s", p_sz, p)\
+\
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_WARNING)))\
+      WARN_MSG_FMT("%.*s", p_sz, p)
+
+static void print_assert_int(void *ctx, void *vas)
 {
-   int error, idx;
+   int error, idx, p_sz;
+   uint32_t desc_type;
+   char *p;
    C_TEST_TYPE_INT *type=(C_TEST_TYPE_INT *)ctx;
-   C_TEST_FN_DESCRIPTION *desc;
 
    const char *print_assert_int_msg[][2] = {
       {"\"%s\". FALSE (%d) -> ok", "\"%s\". Expected FALSE (%d), but found TRUE (%d) -> fail"},
       {"\"%s\". TRUE (%d) -> ok", "\"%s\". Expected TRUE (%d), but found FALSE (%d) -> fail"},
-      {"\"%s\". Expected %d (%04x) == result %d (%04x) -> ok", "\"%s\". Expected %d (%04x), but found %d (%04x) -> fail"},
-      {"\"%s\". Unexpected %d (%04x) != result %d (%04x) -> ok", "\"%s\". Unexpected %d (%04x) == result %d (%04x) -> fail"}
+      {"\"%s\". Expected %d (0x%08x) == result %d (0x%08x) -> ok", "\"%s\". Expected %d (0x%08x), but found %d (0x%08x) -> fail"},
+      {"\"%s\". Unexpected %d (0x%08x) != result %d (0x%08x) -> ok", "\"%s\". Unexpected %d (%08x) == result %d (0x%08x) -> fail"}
    };
 
    PRINT_CALLBACK
 
    error=(type->expected!=type->result);
 
-   if (is_not_equal)
-      error=!error;
-
    idx=0;
-   if ((desc=&type->header.desc)==&C_TEST_FN_DESCRIPTION_ASSERT_TRUE)
+   if ((desc_type=type->header.desc.type)==TYPE_ASSERT_TRUE)
       idx=1;
-   else if (desc==&C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT)
+   else if (desc_type==TYPE_ASSERT_EQUAL_INT)
       idx=2;
-   else if (desc==&C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_INT)
+   else if (desc_type==TYPE_ASSERT_NOT_EQUAL_INT) {
+      error=!error;
       idx=3;
+   }
+
+   SHOW_USER_NOTIFICATION
 
    if (error) {
-      ERROR_MSG(type->header.on_error)
+      //ERROR_MSG(type->header.on_error)
+
+      if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
+         ERROR_MSG_FMT("%.*s", p_sz, p)
+
+      free_vargs(vas);
+
       if (idx>1)
          ERROR_MSG_FMT(print_assert_int_msg[idx][1],
             type->header.desc.fn_name,
@@ -1038,7 +1067,12 @@ static void print_assert_int(void *ctx, void *vas, int is_not_equal)
       abort_tests();
    }
 
-   SUCCESS_MSG(type->header.on_success)
+   //SUCCESS_MSG(type->header.on_success)
+
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_SUCCESS)))
+      SUCCESS_MSG_FMT("%.*s", p_sz, p)
+
+   free_vargs(vas);
 
    if (idx>1)
       SUCCESS_MSG_FMT(print_assert_int_msg[idx][0],
@@ -1054,11 +1088,11 @@ static void print_assert_int(void *ctx, void *vas, int is_not_equal)
      )
 
 }
-
+/*
 static void print_assert_equal_int(void *ctx, void *vas) { print_assert_int(ctx, vas, 0); }
 
 static void print_assert_not_equal_int(void *ctx, void *vas) { print_assert_int(ctx, vas, 1); }
-
+*/
 static void print_assert_longint(void *ctx, void *vas, int is_not_equal)
 {
    C_TEST_TYPE_LONG_INT *type=(C_TEST_TYPE_LONG_INT *)ctx;
@@ -1228,6 +1262,11 @@ add_test_EXIT1:
    type.expected=expected;\
    type.result=result;
 
+//TODO Temporary for adjustment
+#define ASSERT_PRELOAD_TEMP \
+   type.expected=expected;\
+   type.result=result;
+
 #define TEST_BEGIN \
    add_test((void *)&type, vas); \
    begin_test(vas);
@@ -1236,57 +1275,121 @@ add_test_EXIT1:
 static void assert_equal_bool(
    int expected,
    int result,
-   const char *on_error_msg,
-   const char *on_success
+   void *vas
 )
 {
-   void *vas=NULL;
    static C_TEST_TYPE_BOOL type;
 
    (expected==C_TEST_TRUE)?(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE):(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE);
-   ASSERT_PRELOAD
+   ASSERT_PRELOAD_TEMP // TODO Replace TO ASSERT_PRELOAD
    TEST_BEGIN
 }
 
 #define CHECK_BOOL(fn_name) \
    if ((value!=C_TEST_FALSE)&&(value!=C_TEST_TRUE)) {\
-      ERROR_MSG_FMT("Wrong value %d in %s. Was expected C_TEST_FALSE or C_TEST_TRUE", value, fn_name)\
-      return;\
+      ERROR_MSG_FMT("Wrong value %d in %s. Was expected C_TEST_FALSE or C_TEST_TRUE but found %d (0x%08x)", value, fn_name, value, value)\
+      abort_tests();\
    }
 
-void assert_false(int value, const char *on_error_msg, const char *on_success, ...)
+// BEGIN WARN: To be only used in asserts function only
+//in arguments
+//out: vas
+#define VERIFY_VAS_SIG_VALID (uint64_t)0x0000000167abdd72
+#define INVALID_ARGS_PARMS_MSG "\"%s\". Error %d: Invalid arguments parameters"
+int assert_warning_util(void **vas, void *p, const char *FN_MACRO_NAME)
+{
+   int err;
+   uint64_t sig;
+
+   *vas=NULL;
+   if (!p) {
+      ERROR_MSG_FMT("Error. Null parameter. Try %s", FN_MACRO_NAME)
+      return -100;
+   }
+
+   if (p==VAS_END_SIGNATURE) {
+      if (((sig=*((uint64_t *)p))!=VERIFY_VAS_SIG_VALID)) {
+         ERROR_MSG_FMT("Wrong message in %s signature @ (%p) with value (0x%016x)", FN_MACRO_NAME, p, (unsigned long long int)sig)
+         return -101;
+      }
+      return 0;
+   } else if ((err=load_test_vargs(vas, p, NULL, VAS_END_SIGNATURE)))
+      ERROR_MSG_FMT(INVALID_ARGS_PARMS_MSG, FN_MACRO_NAME, err)
+
+   return err;
+
+}
+// END WARN
+
+void assert_false(int value, ...)
 {
    void *vas;
-
    va_list va;
-   va_start(va, on_success);
-   load_test_vargs(&vas, (void *)va_arg(va, void *), NULL, VAS_END_SIGNATURE);
-   va_end(va);
+
    CHECK_BOOL("assert_false")
-   assert_equal_bool(C_TEST_FALSE, value, on_error_msg, on_success);
-   free_vargs(vas);
+   va_start(va, value);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_FALSE")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+   assert_equal_bool(C_TEST_FALSE, value, vas);
 }
 
-void assert_true(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(C_TEST_TRUE, value, on_error_msg, on_success); }
-
-static void assert_int(int expected, int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
+void assert_true(int value, ...)
 {
-   void *vas=NULL;
+   void *vas;
+   va_list va;
+
+   CHECK_BOOL("assert_true")
+   va_start(va, value);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_TRUE")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+   assert_equal_bool(C_TEST_TRUE, value, vas);
+}
+
+//static void assert_int(int expected, int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
+static void assert_int(int expected, int result, C_TEST_FN_DESCRIPTION *desc, void *vas)
+{
    static C_TEST_TYPE_INT type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
-   ASSERT_PRELOAD
+   ASSERT_PRELOAD_TEMP
+//   ASSERT_PRELOAD
    TEST_BEGIN
 }
 
-void assert_equal_int(int expected, int result, const char *on_error_msg, const char *on_success)
+void assert_equal_int(int expected, int result, ...)
 {
-   assert_int(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT, on_error_msg, on_success);
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_EQUAL_INT")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+   //assert_int(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT, on_error_msg, on_success);
+   assert_int(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT, vas);
 }
 
-void assert_not_equal_int(int expected, int result, const char *on_error_msg, const char *on_success)
+void assert_not_equal_int(int expected, int result, ...)
 {
-   assert_int(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_INT, on_error_msg, on_success);
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_NOT_EQUAL_INT")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+   //assert_int(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_INT, on_error_msg, on_success);
+   assert_int(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_INT, vas);
 }
 
 static void assert_longint(long long int expected, long long int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
