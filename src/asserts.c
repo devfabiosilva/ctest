@@ -22,6 +22,9 @@ static void print_assert_not_equal_string_ignore_case(void *, void *);
 static void print_assert_nullable(void *, void *);
 
 static void abort_tests();
+
+static char *parse_vas_string_if_exists(void *, uint32_t);
+
 /*
 static void debug_hex_dump(unsigned char *data, size_t data_size)
 {
@@ -45,6 +48,9 @@ static void debug_hex_dump(unsigned char *data, size_t data_size)
 
 #define C_TEST_TRUE (int)(1==1)
 #define C_TEST_FALSE (int)(1!=1)
+
+_Static_assert(C_TEST_TRUE==1, "Compiler should return 1 for TRUE");
+_Static_assert(C_TEST_FALSE==0, "Compiler should return 0 for FALSE");
 
 #define C_TEST_HEADER_SIGNATURE (uint32_t)(0x0012E4992)
 
@@ -176,6 +182,8 @@ typedef struct c_test_vargs_msg_header_t {
    uint32_t sig_chk;
    C_TEST_VARGS_MSG *vargs_msgs[C_TEST_VARGS_MSG_SIGS_SIZE+1];
 } C_TEST_VARGS_MSG_HEADER;
+
+static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t);
 
 #define ASSERT_EQ_INT_FN "assert_equal_int"
 #define ASSERT_TRUE_FN "assert_true"
@@ -652,6 +660,19 @@ static inline int c_test_is_header_invalid(C_TEST_VARGS_MSG_HEADER *header)
    return ((header->sig^C_TEST_VARGS_SETTER)|(header->sig_chk^C_TEST_VARGS_SETTER_CHK_SUM));
 }
 
+static char *parse_vas_string_if_exists(void *ctest_setter, uint32_t sig)
+{
+   C_TEST_VARGS_MSG *res;
+
+   if (!ctest_setter)
+      return NULL;
+
+   if ((res=check_vargs_sigmsg_exists(((C_TEST_VARGS_MSG_HEADER *)ctest_setter)->vargs_msgs, sig)))
+     return res->msg;
+
+   return NULL;
+}
+
 static C_TEST_VARGS_MSG_HEADER *c_test_vargs_create()
 {
    void *c_vargs;
@@ -682,6 +703,9 @@ static uint32_t check_msgsig(C_TEST_VARGS_MSG *va_msg)
 {
    uint32_t i=0;
 
+   if (!va_msg)
+      return 0;
+
    for (;i<C_TEST_VARGS_MSG_SIGS_SIZE;)
       if (va_msg->sig==C_TEST_VARGS_MSG_SIGS[i++])
          return va_msg->sig;
@@ -698,7 +722,7 @@ static int free_vargs(void *vargs)
       return 0;
 
    err=0;
-   p=&((C_TEST_VARGS_MSG_HEADER *)vargs)->vargs_msgs[0];
+   p=((C_TEST_VARGS_MSG_HEADER *)vargs)->vargs_msgs;
 
    while (*p) {
       if (!check_msgsig(*p)) {
@@ -970,8 +994,16 @@ static int load_test_vargs(void **vargs, ...)
 
 static void print_assert_int(void *ctx, void *vas, int is_not_equal)
 {
+   int error, idx;
    C_TEST_TYPE_INT *type=(C_TEST_TYPE_INT *)ctx;
-   int error;
+   C_TEST_FN_DESCRIPTION *desc;
+
+   const char *print_assert_int_msg[][2] = {
+      {"\"%s\". FALSE (%d) -> ok", "\"%s\". Expected FALSE (%d), but found TRUE (%d) -> fail"},
+      {"\"%s\". TRUE (%d) -> ok", "\"%s\". Expected TRUE (%d), but found FALSE (%d) -> fail"},
+      {"\"%s\". Expected %d (%04x) == result %d (%04x) -> ok", "\"%s\". Expected %d (%04x), but found %d (%04x) -> fail"},
+      {"\"%s\". Unexpected %d (%04x) != result %d (%04x) -> ok", "\"%s\". Unexpected %d (%04x) == result %d (%04x) -> fail"}
+   };
 
    PRINT_CALLBACK
 
@@ -980,12 +1012,46 @@ static void print_assert_int(void *ctx, void *vas, int is_not_equal)
    if (is_not_equal)
       error=!error;
 
+   idx=0;
+   if ((desc=&type->header.desc)==&C_TEST_FN_DESCRIPTION_ASSERT_TRUE)
+      idx=1;
+   else if (desc==&C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT)
+      idx=2;
+   else if (desc==&C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_INT)
+      idx=3;
+
    if (error) {
       ERROR_MSG(type->header.on_error)
+      if (idx>1)
+         ERROR_MSG_FMT(print_assert_int_msg[idx][1],
+            type->header.desc.fn_name,
+            type->expected, type->expected,
+            type->result, type->result
+        )
+      else
+         ERROR_MSG_FMT(print_assert_int_msg[idx][1],
+            type->header.desc.fn_name,
+            type->expected,
+            type->result
+        )
+
       abort_tests();
    }
 
    SUCCESS_MSG(type->header.on_success)
+
+   if (idx>1)
+      SUCCESS_MSG_FMT(print_assert_int_msg[idx][0],
+         type->header.desc.fn_name,
+         type->expected, type->expected,
+         type->result, type->result
+     )
+   else
+      SUCCESS_MSG_FMT(print_assert_int_msg[idx][0],
+         type->header.desc.fn_name,
+         type->expected,
+         type->result
+     )
 
 }
 
@@ -1115,8 +1181,9 @@ static void print_assert_nullable(void *ctx, void *vas)
    SUCCESS_MSG(type->header.on_success)
 }
 
-static void add_test(void *ctx)
+static void add_test(void *ctx, void *vas)
 {
+   int err;
    void *p;
    size_t sz_tmp;
 
@@ -1127,6 +1194,8 @@ static void add_test(void *ctx)
       if (!(p=realloc(_c_test_ptr, sz_tmp+sizeof(C_TEST_FN)))) {
          printf("\nFatal: Error when realloc test pointer @ %p\n", _c_test_ptr);
          free(_c_test_ptr);
+         if ((err=free_vargs(vas)))
+            ERROR_MSG_FMT("free_vargs @ add_test on memory reallocation error = %d at pointer (%p)", err, vas) 
          exit(1);
       }
 
@@ -1135,6 +1204,8 @@ static void add_test(void *ctx)
 
    if (!(p=malloc((sz_tmp=sizeof(C_TEST_HEADER))+sizeof(C_TEST_FN)))) {
       printf("\nFatal: Error when initialize pointer @ NULL");
+      if ((err=free_vargs(vas)))
+         ERROR_MSG_FMT("free_vargs @ add_test on memory allocation for creating header error = %d at pointer (%p)", err, vas) 
       exit(1);
    }
 
@@ -1158,7 +1229,7 @@ add_test_EXIT1:
    type.result=result;
 
 #define TEST_BEGIN \
-   add_test((void *)&type); \
+   add_test((void *)&type, vas); \
    begin_test(vas);
 
 
@@ -1172,14 +1243,31 @@ static void assert_equal_bool(
    void *vas=NULL;
    static C_TEST_TYPE_BOOL type;
 
-   (result==C_TEST_TRUE)?(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE):(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE);
+   (expected==C_TEST_TRUE)?(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_TRUE):(type.header.desc=C_TEST_FN_DESCRIPTION_ASSERT_FALSE);
    ASSERT_PRELOAD
    TEST_BEGIN
 }
 
-void assert_false(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(value, C_TEST_FALSE, on_error_msg, on_success); }
+#define CHECK_BOOL(fn_name) \
+   if ((value!=C_TEST_FALSE)&&(value!=C_TEST_TRUE)) {\
+      ERROR_MSG_FMT("Wrong value %d in %s. Was expected C_TEST_FALSE or C_TEST_TRUE", value, fn_name)\
+      return;\
+   }
 
-void assert_true(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(value, C_TEST_TRUE, on_error_msg, on_success); }
+void assert_false(int value, const char *on_error_msg, const char *on_success, ...)
+{
+   void *vas;
+
+   va_list va;
+   va_start(va, on_success);
+   load_test_vargs(&vas, (void *)va_arg(va, void *), NULL, VAS_END_SIGNATURE);
+   va_end(va);
+   CHECK_BOOL("assert_false")
+   assert_equal_bool(C_TEST_FALSE, value, on_error_msg, on_success);
+   free_vargs(vas);
+}
+
+void assert_true(int value, const char *on_error_msg, const char *on_success) { assert_equal_bool(C_TEST_TRUE, value, on_error_msg, on_success); }
 
 static void assert_int(int expected, int result, C_TEST_FN_DESCRIPTION *desc, const char *on_error_msg, const char *on_success)
 {
