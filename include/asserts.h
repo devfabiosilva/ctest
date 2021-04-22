@@ -14,8 +14,8 @@ void assert_equal_int(int, int, ...);
 void assert_not_equal_int(int, int, ...);
 void assert_equal_longint(long long int, long long int, ...);
 void assert_not_equal_longint(long long int, long long int, ...);
-void assert_equal_double(double, double, double, const char *, const char *);
-void assert_not_equal_double(double, double, double, const char *, const char *);
+void assert_equal_double(double, double, double, ...);
+void assert_not_equal_double(double, double, double, ...);
 void assert_equal_byte(
    void *,
    void *,
@@ -85,6 +85,8 @@ void *set_varg(uint32_t, const char *, ...);
 #define C_ASSERT_NOT_EQUAL_INT(expected, ...) assert_not_equal_int(expected, __VA_ARGS__, VAS_END_SIGNATURE)
 #define C_ASSERT_EQUAL_LONG_INT(expected, ...) assert_equal_longint(expected, __VA_ARGS__, VAS_END_SIGNATURE)
 #define C_ASSERT_NOT_EQUAL_LONG_INT(expected, ...) assert_not_equal_longint(expected, __VA_ARGS__, VAS_END_SIGNATURE)
+#define C_ASSERT_EQUAL_DOUBLE(expected, result, ...) assert_equal_double(expected, result, __VA_ARGS__, VAS_END_SIGNATURE)
+#define C_ASSERT_NOT_EQUAL_DOUBLE(expected, result, ...) assert_not_equal_double(expected, result, __VA_ARGS__, VAS_END_SIGNATURE)
 
 #ifdef DEBUG_TEST
 // TEMPORARY FOR TESTS
