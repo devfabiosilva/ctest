@@ -26,17 +26,31 @@ int main(int argc, char **argv)
 
    C_ASSERT_FALSE(0);
 
-   C_ASSERT_TRUE(0, CTEST_SETTER(
+   C_ASSERT_TRUE(1, CTEST_SETTER(
       CTEST_TITLE("This is a title with value %d", 5),
       CTEST_INFO("This is an INFO title"),
       CTEST_WARN("This is a WARN message"),
       CTEST_ON_ERROR("This is a message when error occurs"),
-      CTEST_ON_SUCCESS("This is a message when error occurs")
+      CTEST_ON_SUCCESS("This is a message when SUCCESS occurs")
+   ));
+
+   C_ASSERT_TRUE(1, CTEST_SETTER(
+      CTEST_TITLE("This is a title with value %d", 5),
+      CTEST_INFO("This is an INFO title"),
+"obj",
+      //CTEST_WARN("This is a WARN message"),
+//      CTEST_ON_ERROR("This is a message when error occurs"),
+      NULL,
+      CTEST_ON_SUCCESS("This is a message when SUCCESS occurs"),
+NULL
    ));
 
    C_ASSERT_EQUAL_INT(-1, -1);
 
-   C_ASSERT_NOT_EQUAL_INT(11,11);
+   C_ASSERT_NOT_EQUAL_INT(11,12);
+
+   C_ASSERT_EQUAL_LONG_INT(3, 3);
+   C_ASSERT_NOT_EQUAL_LONG_INT(1, 0xf1);
 
    end_tests();
 
