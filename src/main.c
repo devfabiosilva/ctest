@@ -19,7 +19,8 @@ void cb_func_on_error(void *ctx)
 
 int main(int argc, char **argv)
 {
-   const double delta=0*1E-15;
+   const double delta=1E-15;
+   char vec1[] = {1, 2, 3, 4}, vec2[] = {1, 2, 3, 4}, vec3[] = {2, 1, 3, 4};
    show_message_text();
 
    //assert_false(0, "Erro bool", "Sucesso bool");
@@ -56,6 +57,10 @@ NULL
    C_ASSERT_EQUAL_DOUBLE(2., 2.3-0.3, delta);
 
    C_ASSERT_NOT_EQUAL_DOUBLE(5.6, 2.3-0.3, delta);
+
+   C_ASSERT_EQUAL_BYTE(vec1, vec2, sizeof(vec1));
+
+   C_ASSERT_NOT_EQUAL_BYTE(vec1, vec3, sizeof(vec1), CTEST_SETTER(CTEST_INFO("Testando esse vetor"), CTEST_WARN("ALERTA: Ele deve ser diferente!!!")));
 
    end_tests();
 

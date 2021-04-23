@@ -10,9 +10,10 @@
 
 static void print_assert_int(void *, void *);
 static void print_assert_longint(void *, void *);
-static void print_assert_equal_byte(void *, void *);
+//static void print_assert_equal_byte(void *, void *);
+static void print_assert_byte(void *, void *);
 static void print_assert_double(void *, void *);
-static void print_assert_not_equal_byte(void *, void *);
+//static void print_assert_not_equal_byte(void *, void *);
 static void print_assert_equal_string(void *, void *);
 static void print_assert_not_equal_string(void *, void *);
 static void print_assert_equal_string_ignore_case(void *, void *);
@@ -87,9 +88,9 @@ typedef struct c_test_type_header_t {
    C_TEST_FN_DESCRIPTION desc;
 
    const char
-   *on_error, // Remove
-   *on_success, //Remove
-   *on_warning; // Remove
+   *on_error, // TODO Remove
+   *on_success, // TODO Remove
+   *on_warning; // TODO Remove
 
 } C_TEST_TYPE_HEADER;
 
@@ -127,12 +128,12 @@ typedef struct c_test_type_byte_t {
    void
    *expected,
    *result,
-   *free_on_error_ctx;
+   *free_on_error_ctx; // TODO Remove 
 
    size_t size;
 
    free_on_error_fn
-   free_on_error_cb;
+   free_on_error_cb; // TODO Remove
 } C_TEST_TYPE_BYTE;
 
 typedef struct c_test_type_string_t {
@@ -203,20 +204,22 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t
 #define TYPE_ASSERT_FALSE 2
 #define TYPE_ASSERT_EQUAL_LONG_INT 3
 #define TYPE_ASSERT_EQUAL_DOUBLE 4
+#define TYPE_ASSERT_EQUAL_BYTE 5
 #define TYPE_ASSERT_NOT_EQUAL_INT 6
 #define TYPE_TYPE_ASSERT_NOT_EQUAL_LONG_INT 7
 #define TYPE_ASSERT_NOT_EQUAL_DOUBLE 8
+#define TYPE_ASSERT_NOT_EQUAL_BYTE 9
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {TYPE_ASSERT_EQUAL_INT, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_int},
    {TYPE_ASSERT_TRUE, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_int},
    {TYPE_ASSERT_FALSE, ASSERT_FALSE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_int},
    {TYPE_ASSERT_EQUAL_LONG_INT, ASSERT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_longint},
    {TYPE_ASSERT_EQUAL_DOUBLE, ASSERT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_double},
-   {5, ASSERT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_equal_byte},
+   {TYPE_ASSERT_EQUAL_BYTE, ASSERT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_byte},
    {TYPE_ASSERT_NOT_EQUAL_INT, ASSERT_NOT_EQUAL_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_int},
    {TYPE_TYPE_ASSERT_NOT_EQUAL_LONG_INT, ASSERT_NOT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_longint},
    {TYPE_ASSERT_NOT_EQUAL_DOUBLE, ASSERT_NOT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_double},
-   {9, ASSERT_NOT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_not_equal_byte},
+   {TYPE_ASSERT_NOT_EQUAL_BYTE, ASSERT_NOT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_byte},
    {10, ASSERT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_equal_string},
    {11, ASSERT_NOT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_not_equal_string},
    {12, ASSERT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_equal_string_ignore_case},
@@ -1118,10 +1121,6 @@ static void print_assert_longint(void *ctx, void *vas)
    PRINT_CALLBACK
 
    error=(type->expected!=type->result);
-/*
-   if (is_not_equal)
-      error=!error;
-*/
 
    idx=0;
    if (type->header.desc.type==TYPE_TYPE_ASSERT_NOT_EQUAL_LONG_INT) {
@@ -1132,7 +1131,6 @@ static void print_assert_longint(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-      //ERROR_MSG(type->header.on_error)
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
 
@@ -1147,7 +1145,6 @@ static void print_assert_longint(void *ctx, void *vas)
       abort_tests();
    }
 
-   //SUCCESS_MSG(type->header.on_success)
    if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_SUCCESS)))
       SUCCESS_MSG_FMT("%.*s", p_sz, p)
 
@@ -1181,8 +1178,9 @@ static void print_assert_double(void *ctx, void *vas)
       error=!error;
    }
 
+   SHOW_USER_NOTIFICATION
+
    if (error) {
-      //ERROR_MSG(type->header.on_error)
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
 
@@ -1206,36 +1204,64 @@ static void print_assert_double(void *ctx, void *vas)
       type->expected, type->result, type->delta
    )
 
-   //SUCCESS_MSG(type->header.on_success)
 }
 
-static void print_assert_byte(void *ctx, void *vas, int is_not_equal)
+static void print_assert_byte(void *ctx, void *vas)
 {
    C_TEST_TYPE_BYTE *type=(C_TEST_TYPE_BYTE *)ctx;
-   int tst;
+   int error, idx, p_sz;
+   char *p;
+
+   const char *print_assert_byte_msg[][2] = {
+      {
+          "\"%s\". (%llu) bytes at pointer expected (%p) == pointer result (%p) -> ok",
+          "\"%s\". (%llu) bytes at pointer expected (%p) != pointer result (%p) -> fail"
+      },
+      {
+          "\"%s\". (%llu) bytes at pointer unexpected (%p) != pointer result (%p) -> ok", 
+          "\"%s\". (%llu) bytes at pointer unexpected (%p) == pointer result (%p) -> fail"
+      }
+   };
 
    PRINT_CALLBACK
 
-   tst=memcmp(type->expected, type->result, type->size);
+   error=memcmp(type->expected, type->result, type->size);
 
-   if (is_not_equal)
-      (tst)?(tst=0):(tst=-1);
+   idx=0;
+   if (type->header.desc.type==TYPE_ASSERT_NOT_EQUAL_BYTE) {
+      idx=1;
+      error=!error;
+   }
 
-   if (tst) {
-      ERROR_MSG(type->header.on_error)
+   SHOW_USER_NOTIFICATION
 
-      if (type->free_on_error_cb)
-         type->free_on_error_cb(type->free_on_error_ctx);
+   if (error) {
+
+      if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
+         ERROR_MSG_FMT("%.*s", p_sz, p)
+
+      free_vargs(vas);
+
+      ERROR_MSG_FMT(print_assert_byte_msg[idx][1],
+         type->header.desc.fn_name,
+         type->size,
+         type->expected, type->result
+      )
 
       abort_tests();
    }
 
-   SUCCESS_MSG(type->header.on_success)
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_SUCCESS)))
+      SUCCESS_MSG_FMT("%.*s", p_sz, p)
+
+   free_vargs(vas);
+
+   SUCCESS_MSG_FMT(print_assert_byte_msg[idx][0],
+      type->header.desc.fn_name,
+      type->size,
+      type->expected, type->result
+   )
 }
-
-static void print_assert_equal_byte(void *ctx, void *vas) { print_assert_byte(ctx, vas, 0); }
-
-static void print_assert_not_equal_byte(void *ctx, void *vas) { print_assert_byte(ctx, vas, 1); }
 
 static void print_assert_string(void *ctx, void *vas, int is_not_equal, int is_ignore_case)
 {
@@ -1548,20 +1574,16 @@ static void assert_byte(
    void *result,
    size_t size,
    C_TEST_FN_DESCRIPTION *desc,
-   free_on_error_fn free_on_error_cb,
-   void *free_on_error_ctx,
-   const char *on_error_msg,
-   const char *on_success
+   void *vas
 )
 {
-   void *vas=NULL;
    static C_TEST_TYPE_BYTE type;
 
    memcpy(&type.header.desc, desc, sizeof(type.header.desc));
-   ASSERT_PRELOAD
+   ASSERT_PRELOAD_TEMP
    type.size=size;
-   type.free_on_error_cb=free_on_error_cb;
-   type.free_on_error_ctx=free_on_error_ctx;
+   type.free_on_error_cb=NULL; //TODO Remove
+   type.free_on_error_ctx=NULL; // TODO remove
    TEST_BEGIN
 }
 
@@ -1569,26 +1591,40 @@ void assert_equal_byte(
    void *expected,
    void *result,
    size_t size,
-   free_on_error_fn free_on_error_cb,
-   void *free_on_error_ctx,
-   const char *on_error_msg,
-   const char *on_success
+   ...
 )
 {
-   assert_byte(expected, result, size, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_BYTE, free_on_error_cb, free_on_error_ctx, on_error_msg, on_success);
+   void *vas;
+   va_list va;
+
+   va_start(va, size);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_EQUAL_BYTE")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   assert_byte(expected, result, size, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_BYTE, vas);
 }
 
 void assert_not_equal_byte(
    void *expected,
    void *result,
    size_t size,
-   free_on_error_fn free_on_error_cb,
-   void *free_on_error_ctx,
-   const char *on_error_msg,
-   const char *on_success
+   ...
 )
 {
-   assert_byte(expected, result, size, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_BYTE, free_on_error_cb, free_on_error_ctx, on_error_msg, on_success);
+   void *vas;
+   va_list va;
+
+   va_start(va, size);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_NOT_EQUAL_BYTE")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   assert_byte(expected, result, size, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_BYTE, vas);
 }
 
 static void assert_string(
