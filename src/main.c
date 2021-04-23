@@ -62,6 +62,10 @@ NULL
 
    C_ASSERT_NOT_EQUAL_BYTE(vec1, vec3, sizeof(vec1), CTEST_SETTER(CTEST_INFO("Testando esse vetor"), CTEST_WARN("ALERTA: Ele deve ser diferente!!!")));
 
+   C_ASSERT_NULL(NULL);
+
+   C_ASSERT_NOT_NULL(vec3);
+
    end_tests();
 
    return 0;

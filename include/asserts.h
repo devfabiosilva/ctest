@@ -20,38 +20,20 @@ void assert_equal_byte(
    void *,
    void *,
    size_t,
-   free_on_error_fn,
-   void *,
-   const char *,
-   const char *
+   ...
 );
 void assert_not_equal_byte(
    void *,
    void *,
    size_t,
-   free_on_error_fn,
-   void *,
-   const char *,
-   const char *
+   ...
 );
 void assert_equal_string(const char *, const char *, const char *, const char *);
 void assert_not_equal_string(const char *, const char *, const char *, const char *);
 void assert_equal_string_ignore_case(const char *, const char *, const char *, const char *);
 void assert_not_equal_string_ignore_case(const char *, const char *, const char *, const char *);
-void assert_null(
-   void *,
-   free_on_error_fn,
-   void *,
-   const char *,
-   const char *
-);
-void assert_not_null(
-   void *,
-   free_on_error_fn,
-   void *,
-   const char *,
-   const char *
-);
+void assert_null(void *, ...);
+void assert_not_null(void *, ...);
 void on_add_test(header_on_cb);
 void rm_on_add_test();
 void on_begin_test(header_on_cb);
@@ -87,7 +69,10 @@ void *set_varg(uint32_t, const char *, ...);
 #define C_ASSERT_NOT_EQUAL_LONG_INT(expected, ...) assert_not_equal_longint(expected, __VA_ARGS__, VAS_END_SIGNATURE)
 #define C_ASSERT_EQUAL_DOUBLE(expected, result, ...) assert_equal_double(expected, result, __VA_ARGS__, VAS_END_SIGNATURE)
 #define C_ASSERT_NOT_EQUAL_DOUBLE(expected, result, ...) assert_not_equal_double(expected, result, __VA_ARGS__, VAS_END_SIGNATURE)
-
+#define C_ASSERT_EQUAL_BYTE(expected, result, ...) assert_equal_byte(expected, result, __VA_ARGS__, VAS_END_SIGNATURE)
+#define C_ASSERT_NOT_EQUAL_BYTE(expected, result, ...) assert_not_equal_byte(expected, result, __VA_ARGS__, VAS_END_SIGNATURE)
+#define C_ASSERT_NULL(...) assert_null(__VA_ARGS__, VAS_END_SIGNATURE);
+#define C_ASSERT_NOT_NULL(...) assert_not_null(__VA_ARGS__, VAS_END_SIGNATURE);
 #ifdef DEBUG_TEST
 // TEMPORARY FOR TESTS
 
