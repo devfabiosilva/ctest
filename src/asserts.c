@@ -1116,8 +1116,8 @@ static void print_assert_longint(void *ctx, void *vas)
    char *p;
 
    const char *print_assert_long_int_msg[][2] = {
-      {"\"%s\". Expected %d (0x%016x) == result %d (0x%016x) -> ok", "\"%s\". Expected %d (0x%016x), but found %d (0x%016x) -> fail"},
-      {"\"%s\". Unexpected %d (0x%016x) != result %d (0x%016x) -> ok", "\"%s\". Unexpected %d (%016x) == result %d (0x%016x) -> fail"}
+      {"\"%s\". Expected %d (0x%016llx) == result %d (0x%016llx) -> ok", "\"%s\". Expected %d (0x%016llx), but found %d (0x%016llx) -> fail"},
+      {"\"%s\". Unexpected %d (0x%016llx) != result %d (0x%016llx) -> ok", "\"%s\". Unexpected %d (%016llx) == result %d (0x%016llx) -> fail"}
    };
 
    PRINT_CALLBACK
