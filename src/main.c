@@ -22,6 +22,7 @@ int main(int argc, char **argv)
    const double delta=1E-15;
    char vec1[] = {1, 2, 3, 4}, vec2[] = {1, 2, 3, 4}, vec3[] = {2, 1, 3, 4};
    show_message_text();
+   const char *name1="Nikola Tesla", *name2="Nikola Tesla", *name3="nikola tesla";
 
    //assert_false(0, "Erro bool", "Sucesso bool");
 
@@ -65,6 +66,14 @@ NULL
    C_ASSERT_NULL(NULL);
 
    C_ASSERT_NOT_NULL(vec3);
+
+   C_ASSERT_EQUAL_STRING(name1, name2);
+
+   C_ASSERT_EQUAL_STRING_IGNORE_CASE(name3, name2);
+
+   C_ASSERT_NOT_EQUAL_STRING(name1, name3);
+
+   C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE(name3, "Albert Einstein");
 
    end_tests();
 
