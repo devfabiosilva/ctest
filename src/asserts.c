@@ -1103,7 +1103,7 @@ static void parse_vas_cb(void *vas, uint32_t sig)
 }
 
 #define CALLBACK_ON_SUCCESS parse_vas_cb(vas, C_TEST_VARGS_ON_SUCCESS_CALLBACK);
-#define CALLBACK_ON_ON_ERROR parse_vas_cb(vas, C_TEST_VARGS_ON_ERROR_CALLBACK);
+#define CALLBACK_ON_ERROR parse_vas_cb(vas, C_TEST_VARGS_ON_ERROR_CALLBACK);
 
 //
 #define PRINT_CALLBACK \
@@ -1151,7 +1151,7 @@ static void print_assert_int(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-      CALLBACK_ON_ON_ERROR
+      CALLBACK_ON_ERROR
 
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
@@ -1220,7 +1220,7 @@ static void print_assert_longint(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-      CALLBACK_ON_ON_ERROR
+      CALLBACK_ON_ERROR
 
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
@@ -1274,7 +1274,7 @@ static void print_assert_double(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-      CALLBACK_ON_ON_ERROR
+      CALLBACK_ON_ERROR
 
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
@@ -1289,7 +1289,7 @@ static void print_assert_double(void *ctx, void *vas)
       abort_tests();
    }
 
-   CALLBACK_ON_ON_ERROR
+   CALLBACK_ON_SUCCESS
 
    if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_SUCCESS)))
       SUCCESS_MSG_FMT("%.*s", p_sz, p)
@@ -1333,8 +1333,7 @@ static void print_assert_byte(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-
-      CALLBACK_ON_ON_ERROR
+      CALLBACK_ON_ERROR
 
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
@@ -1395,7 +1394,7 @@ static void print_assert_string(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-      CALLBACK_ON_ON_ERROR
+      CALLBACK_ON_ERROR
 
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
@@ -1454,8 +1453,7 @@ static void print_assert_nullable(void *ctx, void *vas)
    SHOW_USER_NOTIFICATION
 
    if (error) {
-
-      CALLBACK_ON_ON_ERROR
+      CALLBACK_ON_ERROR
 
       if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
          ERROR_MSG_FMT("%.*s", p_sz, p)
