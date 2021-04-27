@@ -16,15 +16,27 @@ void cb_func_on_error(void *ctx)
    printf("\nExiting on error test\n\t%s\n", (const char *)ctx);
 }
 */
+void cb_func_on_success(void *ctx)
+{
+   printf("\nSuccess ctx %p\n", ctx);
 
+   if (ctx)
+      printf("\nCTX VALUE %s\n", (char *)ctx);
+}
+void cb_func_on_error(void *ctx)
+{
+   printf("\nError ctx %p\n", ctx);
+
+   if (ctx)
+      printf("\nCTX VALUE %s\n", (char *)ctx);
+}
 int main(int argc, char **argv)
 {
    const double delta=1E-15;
    char vec1[] = {1, 2, 3, 4}, vec2[] = {1, 2, 3, 4}, vec3[] = {2, 1, 3, 4};
-   show_message_text();
    const char *name1="Nikola Tesla", *name2="Nikola Tesla", *name3="nikola tesla";
 
-   //assert_false(0, "Erro bool", "Sucesso bool");
+   C_ASSERT_FALSE(1, CTEST_SETTER(CTEST_INFO("This is an INFO title"), CTEST_ON_ERROR_CB(cb_func_on_error, "jgg"), CTEST_ON_SUCCESS_CB(cb_func_on_success, "hhj")))
 
    C_ASSERT_FALSE(0)
 
@@ -77,6 +89,8 @@ NULL
    C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE(name3, "Albert Einstein")
 
    end_tests();
+
+   show_message_text();
 
    return 0;
 }
