@@ -1095,11 +1095,12 @@ static void parse_vas_cb(void *vas, uint32_t sig)
    if (!vas)
       return;
 
-   if ((res=check_vargs_sigmsg_exists(((C_TEST_VARGS_MSG_HEADER *)vas)->vargs_msgs, sig)))
+   if ((res=check_vargs_sigmsg_exists(((C_TEST_VARGS_MSG_HEADER *)vas)->vargs_msgs, sig))) {
       if (sig==C_TEST_VARGS_ON_SUCCESS_CALLBACK)
          res->on_success_cb(res->ctx);
       else
          res->on_error_cb(res->ctx);
+   }
 }
 
 #define CALLBACK_ON_SUCCESS parse_vas_cb(vas, C_TEST_VARGS_ON_SUCCESS_CALLBACK);
