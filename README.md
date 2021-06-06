@@ -6,7 +6,7 @@ A simplest lightweight compatible C test suite for low level C and C++ applicati
 
 Just add _asserts.h_ and _asserts.c_ source code into your project
 
-See [example sample code](https://github.com/devfabiosilva/ctest/example) and
+See [example sample code](https://github.com/devfabiosilva/ctest/tree/master/example) and
 
 ```sh
 make
