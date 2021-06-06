@@ -1,5 +1,9 @@
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define C_TEST_TRUE (int)(1==1)
 #define C_TEST_FALSE (int)(1!=1)
 
@@ -133,4 +137,9 @@ void *set_varg(uint32_t, const char *, ...);
  char *ctest_setter_has_onsuccess(void *);
  void show_message_text();
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 
