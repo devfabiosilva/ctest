@@ -14,6 +14,16 @@ make
 
 to test autoexplaining example
 
+To clean test:
+```sh
+make clean
+```
+
+## Projects using _ctest_
+
+- [myNanoEmbedded](https://github.com/devfabiosilva/myNanoEmbedded)
+- [JNI tutorial](https://github.com/devfabiosilva/jni_tutorial)
+
 ## License
 
 MIT
