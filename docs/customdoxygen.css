@@ -1,0 +1,4 @@
+
+#nav-tree-contents > ul > li > ul > li:nth-child(n+4) {
+	display: none;
+}

@@ -1,8 +1,6 @@
 #include <stdio.h>
-#include <math.h>
 #include <asserts.h>
 #include <string.h>
-#include <stdint.h>
 
 void cb_func_on_success(void *ctx)
 {
