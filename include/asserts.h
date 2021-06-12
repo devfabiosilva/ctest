@@ -160,10 +160,85 @@ void *set_varg(uint32_t, const char *, ...);
 #define C_TEST_VARGS_ON_ERROR_CALLBACK (uint32_t)(C_TEST_TYPE_VARGS_CALLBACK|0x062E4992)
 #endif
 
+/**
+ * @def CTEST_SETTER(...)
+ * @brief Setter for CTEST. This setter allows callback function such _on_error_ and _on_success_ and add custom _message_, _warn_, _error_, _info_ and _title_
+ *
+ * # Example:
+ *
+ *```c
+ *  const char *message = "This is a text";
+ *  ...
+ *  C_ASSERT_TRUE(a > b,
+ *     CTEST_SETTER(
+ *        CTEST_TITLE("This is a title with message %s", message),
+ *        CTEST_INFO("This is an INFO title"),
+ *        CTEST_WARN("This is a WARN message"),
+ *        CTEST_ON_ERROR("This is a message when error occurs"),
+ *        CTEST_ON_SUCCESS("This is a message when SUCCESS occurs"),
+ *        CTEST_ON_ERROR_CB(cb_func_on_error, "This function is called on error"),
+ *        CTEST_ON_SUCCESS_CB(cb_func_on_success, "This function is callend on success")
+ *  ))
+ *  ...
+ *``` 
+ */
 #define CTEST_SETTER(...) vargs_setter(-1, __VA_ARGS__, NULL, VA_END_SIGNATURE)
 
+/**
+ * @def CTEST_TITLE(...)
+ * @brief Set a title message to test. It is only used with _CTEST_SETTER_ macro
+ *
+ * # Example:
+ *
+ *```c
+ * 
+ *  ...
+ *  C_ASSERT_EQUAL_BYTE(vec1, vec3, sizeof(vec1),
+ *     CTEST_SETTER(
+ *       CTEST_TITLE("Checking if vec1 at (%p) has equal bytes with vec2 at (%p)", vec1, vec2,
+ *     )
+ *  )
+ *  ...
+ *``` 
+ */
 #define CTEST_TITLE(...) set_varg(C_TEST_VARGS_TITLE, __VA_ARGS__)
+
+/**
+ * @def CTEST_INFO(...)
+ * @brief Set a info message to test. It is only used with _CTEST_SETTER_ macro
+ *
+ * # Example:
+ *
+ *```c
+ *
+ *  ...
+ *  C_ASSERT_EQUAL_BYTE(vec1, vec3, sizeof(vec1),
+ *     CTEST_SETTER(
+ *       CTEST_INFO("Checking if vec1 at (%p) has equal bytes with vec2 at (%p)", vec1, vec2,
+ *     )
+ *  )
+ *  ...
+ *``` 
+ */
 #define CTEST_INFO(...) set_varg(C_TEST_VARGS_INFO, __VA_ARGS__)
+
+/**
+ * @def CTEST_WARN(...)
+ * @brief Set a warn message to test. It is only used with _CTEST_SETTER_ macro
+ *
+ * # Example:
+ *
+ *```c
+ *
+ *  ...
+ *  C_ASSERT_EQUAL_BYTE(vec1, vec3, sizeof(vec1),
+ *     CTEST_SETTER(
+ *       CTEST_WARN("Checking if vec1 at (%p) has equal bytes with vec2 at (%p)", vec1, vec2,
+ *     )
+ *  )
+ *  ...
+ *``` 
+ */
 #define CTEST_WARN(...) set_varg(C_TEST_VARGS_WARNING, __VA_ARGS__)
 #define CTEST_ON_ERROR(...) set_varg(C_TEST_VARGS_ERROR, __VA_ARGS__)
 #define CTEST_ON_SUCCESS(...) set_varg(C_TEST_VARGS_SUCCESS, __VA_ARGS__)
