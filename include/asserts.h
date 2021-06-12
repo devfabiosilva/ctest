@@ -152,13 +152,92 @@ void *set_varg(uint32_t, const char *, ...);
 #define CTEST_ON_SUCCESS_CB(...) set_varg_callback(C_TEST_VARGS_ON_SUCCESS_CALLBACK, __VA_ARGS__, NULL, VAS_END_SIGNATURE)
 #define CTEST_ON_ERROR_CB(...) set_varg_callback(C_TEST_VARGS_ON_ERROR_CALLBACK, __VA_ARGS__, NULL, VAS_END_SIGNATURE)
 
+/**
+ * @def C_ASSERT_FALSE(result, ...)
+ * @brief Checks if result is _FALSE_
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_TRUE
+ */
 #define C_ASSERT_FALSE(...) assert_false(__VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_TRUE(result, ...)
+ * @brief Checks if result is _TRUE_
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_FALSE
+ */
 #define C_ASSERT_TRUE(...) assert_true(__VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_EQUAL_INT(expected, result, ...)
+ * @brief Checks if expected and result value are equal
+ * @param expected Expected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_NOT_EQUAL_INT
+ */
 #define C_ASSERT_EQUAL_INT(expected, ...) assert_equal_int(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_NOT_EQUAL_INT(unexpected, result, ...)
+ * @brief Checks if expected and result value are NOT equal
+ * @param unexpected Unexpected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_EQUAL_INT
+ */
 #define C_ASSERT_NOT_EQUAL_INT(unexpected, ...) assert_not_equal_int(unexpected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_EQUAL_LONG_INT(expected, result, ...)
+ * @brief Checks if expected and result value are equal
+ * @param expected Expected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_NOT_EQUAL_LONG_INT
+ */
 #define C_ASSERT_EQUAL_LONG_INT(expected, ...) assert_equal_longint(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_NOT_EQUAL_LONG_INT(unexpected, result, ...)
+ * @brief Checks if expected and result value are NOT equal
+ * @param unexpected Unexpected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_EQUAL_LONG_INT
+ */
 #define C_ASSERT_NOT_EQUAL_LONG_INT(expected, ...) assert_not_equal_longint(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_EQUAL_DOUBLE(expected, result, delta, ...)
+ * @brief Checks if expected and result value are equal
+ * @param expected Unexpected value
+ * @param result Result value
+ * @param delta Delta double value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_NOT_EQUAL_DOUBLE
+ */
 #define C_ASSERT_EQUAL_DOUBLE(expected, result, ...) assert_equal_double(expected, result, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_NOT_EQUAL_DOUBLE(unexpected, result, delta, ...)
+ * @brief Checks if expected and result value are NOT equal
+ * @param unexpected Expected value
+ * @param result Result value
+ * @param delta Delta double value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_EQUAL_DOUBLE
+ */
 #define C_ASSERT_NOT_EQUAL_DOUBLE(expected, result, ...) assert_not_equal_double(expected, result, __VA_ARGS__, VAS_END_SIGNATURE);
 
 /**
@@ -227,7 +306,26 @@ void *set_varg(uint32_t, const char *, ...);
  */
 #define C_ASSERT_NOT_EQUAL_STRING(expected, ...) assert_not_equal_string(expected, __VA_ARGS__, VAS_END_SIGNATURE);
 
+/**
+ * @def C_ASSERT_EQUAL_STRING_IGNORE_CASE(expected, result, ...)
+ * @brief Checks if two strings are equal ignoring case
+ * @param Expected Expected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE
+ */
 #define C_ASSERT_EQUAL_STRING_IGNORE_CASE(expected, ...) assert_equal_string_ignore_case(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE(unexpected, result, ...)
+ * @brief Checks if two strings are NOT equal ignoring case
+ * @param unexpected Unexpected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_EQUAL_STRING_IGNORE_CASE
+ */
 #define C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE(expected, ...) assert_not_equal_string_ignore_case(expected, __VA_ARGS__, VAS_END_SIGNATURE);
 #ifndef CTEST_DOC_SKIP
 #ifdef DEBUG_TEST
