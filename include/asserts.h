@@ -17,7 +17,7 @@ extern "C" {
  * make
  * ```
  *
- * to test autoexplaining example
+ * to test [autoexplaining example](https://github.com/devfabiosilva/ctest/tree/master/example)
  *
  * To clean test:
  * ```sh
