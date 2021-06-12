@@ -36,6 +36,9 @@ extern "C" {
  * @version 0.0.1
  * @copyright License MIT <a href="https://github.com/devfabiosilva/ctest/blob/master/README.md">see here</a>
  *
+ * ## Contact
+ *
+ * mailto:fabioegel@gmail.com
  */
 
 /**
