@@ -34,11 +34,20 @@ extern "C" {
  * @author Fábio Pereira da Silva
  * @date Jun 10 2021
  * @version 0.0.1
- * @copyright License MIT <a href="https://example.com">see here</a>
+ * @copyright License MIT <a href="https://github.com/devfabiosilva/ctest/blob/master/README.md">see here</a>
  *
  */
 
+/**
+ * @def C_TEST_TRUE
+ * _TRUE_ value for CTEST
+ */
 #define C_TEST_TRUE (int)(1==1)
+
+/**
+ * @def C_TEST_FALSE
+ * _FALSE_ value for CTEST
+ */
 #define C_TEST_FALSE (int)(1!=1)
 
 #ifndef CTEST_DOC_SKIP
@@ -46,7 +55,16 @@ void _c_test_ignore();
 void _c_test_ignore_end();
 #endif
 
+/**
+ * @def C_TEST_BEGIN_IGNORE
+ * Begin ignoring tests
+ */
 #define C_TEST_BEGIN_IGNORE _c_test_ignore();
+
+/**
+ * @def C_TEST_END_IGNORE
+ * End ignoring tests
+ */
 #define C_TEST_END_IGNORE _c_test_ignore_end();
 
 #ifndef CTEST_DOC_SKIP
