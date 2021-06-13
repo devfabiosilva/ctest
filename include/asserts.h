@@ -82,16 +82,179 @@ void write_title(const char *, const char *);
 void write_title_fmt(const char *, const char *, ...);
 #endif
 
+/**
+ * @def TITLE_MSG
+ * Add title text message
+ *
+ * ## Example:
+ *
+ * ```c
+ * ...
+ * TITLE_MSG("This is a text title message")
+ * ...
+ * ```
+ *
+ * @see TITLE_MSG_FMT
+ */
 #define TITLE_MSG(msg) write_title(msg, INITIAL_TITLE);
+
+/**
+ * @def ERROR_MSG
+ * Add error text message
+ *
+ * ## Example:
+ *
+ * ```c
+ * ...
+ * ERROR_MSG("This is a text error message")
+ * ...
+ * ```
+ *
+ * @see ERROR_MSG_FMT
+ */
 #define ERROR_MSG(msg) write_title(msg, ERROR_CODE);
+
+/**
+ * @def SUCCESS_MSG
+ * Add success text message
+ *
+ * ## Example:
+ *
+ * ```c
+ * ...
+ * SUCCESS_MSG("This is a text success message")
+ * ...
+ * ```
+ *
+ * @see SUCCESS_MSG_FMT
+ */
 #define SUCCESS_MSG(msg) write_title(msg, SUCCESS_CODE);
+
+/**
+ * @def WARN_MSG
+ * Add warning text message
+ *
+ * ## Example:
+ *
+ * ```c
+ * ...
+ * WARN_MSG("This is a text warning message")
+ * ...
+ * ```
+ *
+ * @see WARN_MSG_FMT
+ */
 #define WARN_MSG(msg) write_title(msg, WARNING_CODE);
+
+/**
+ * @def INFO_MSG
+ * Add info text message
+ *
+ * ## Example:
+ *
+ * ```c
+ * ...
+ * WARN_MSG("This is a text info message")
+ * ...
+ * ```
+ *
+ * @see INFO_MSG_FMT
+ */
 #define INFO_MSG(msg) write_title(msg, INFO_CODE);
 
+/**
+ * @def TITLE_MSG_FMT
+ * Add title text message with formatted string
+ *
+ * ## Example:
+ *
+ * ```c
+ *
+ * int a=5, b=10;
+ *
+ * ...
+ * TITLE_MSG_FMT("This is a %s and a + b = %d", "text", a+b)
+ * ...
+ * ```
+ *
+ * @see TITLE_MSG
+ */
 #define TITLE_MSG_FMT(...) write_title_fmt(INITIAL_TITLE, __VA_ARGS__);
+
+/**
+ * @def ERROR_MSG_FMT
+ * Add error text message with formatted string
+ *
+ * ## Example:
+ *
+ * ```c
+ *
+ * int a=5, b=10;
+ *
+ * ...
+ * ERROR_MSG_FMT("This is a %s and a + b = %d", "text", a+b)
+ * ...
+ * ```
+ *
+ * @see ERROR_MSG
+ */
 #define ERROR_MSG_FMT(...) write_title_fmt(ERROR_CODE, __VA_ARGS__);
+
+/**
+ * @def WARN_MSG_FMT
+ * Add warning text message with formatted string
+ *
+ * ## Example:
+ *
+ * ```c
+ *
+ * int a=5, b=10;
+ *
+ * ...
+ * WARN_MSG_FMT("This is a %s and a + b = %d", "text", a+b)
+ * ...
+ * ```
+ *
+ * @see WARN_MSG
+ */
 #define WARN_MSG_FMT(...) write_title_fmt(WARNING_CODE, __VA_ARGS__);
+
+/**
+ * @def INFO_MSG_FMT
+ * Add info text message with formatted string
+ *
+ * ## Example:
+ *
+ * ```c
+ *
+ * int a=5, b=10;
+ *
+ * ...
+ * INFO_MSG_FMT("This is a %s and a + b = %d", "text", a+b)
+ * ...
+ * ```
+ *
+ * @see INFO_MSG
+ */
 #define INFO_MSG_FMT(...) write_title_fmt(INFO_CODE, __VA_ARGS__);
+
+/**
+ * @def SUCCESS_MSG_FMT
+ * Add success text message with formatted string
+ *
+ * ## Example:
+ *
+ * ```c
+ *
+ * int a=5, b=10;
+ *
+ * ...
+ * SUCCESS_MSG_FMT("This is a %s and a + b = %d", "text", a+b)
+ * ...
+ * ```
+ *
+ * @see SUCCESS_MSG
+ */
 #define SUCCESS_MSG_FMT(...) write_title_fmt(SUCCESS_CODE, __VA_ARGS__);
 
 #ifndef CTEST_DOC_SKIP
