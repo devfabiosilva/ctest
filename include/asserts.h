@@ -305,8 +305,64 @@ void on_test(header_on_cb);
 void rm_on_test();
 void on_end_test(header_on_cb);
 void rm_on_end_test();
+
+/**
+ * @fn void on_abort(header_on_cb callback)
+ * @brief Call function _callback_ if any test fails
+ *
+ * - Example:
+ *
+ * ```c
+ * #include <stdio.h>
+ * #include <asserts.h>
+ * #include <string.h>
+ *
+ * uint8_t *vec2;
+ *
+ * void on_abort_fn(void *context)
+ * {
+ *    // context is not used.
+ *    if (vec2)
+ *        free(vec2);
+ * }
+ *
+ * int main(int argc, char **argv)
+ * {
+ *    uint8_t vec1[] = "This is a simple text";
+ *    vec2 = malloc(sizeof(vec1));
+ *
+ *    memcpy(vec2, vec1, sizeof(vec1));
+ *    on_abort(on_abort_fn); // If error occurs, on abort will call on_abort_fn() function for any assert function
+ *
+ *    C_ASSERT_NOT_EQUAL_BYTE(vec1, vec2, sizeof(vec1),
+ *        CTEST_SETTER(
+ *          CTEST_INFO("Testing if \"vec1\" (%p) is different from \"vec2\" (%p) of size %u", vec1, vec2, sizeof(vec1)),
+ *          CTEST_WARN("Warning: This should be different")
+ *       )
+ *    )
+ *
+ *    rm_on_abort(); // Release on_abort_fn() from lines below
+ *    end_tests();
+ *
+ *    return 0;
+ * } 
+ * ```
+ * @see rm_on_abort
+ */
 void on_abort(header_on_cb);
+
+/**
+ * @fn void rm_on_abort()
+ * @brief Removes callback pointer from global _on_abort_ context
+ *
+ * @see on_abort
+ */
 void rm_on_abort();
+
+/**
+ * @fn void end_tests()
+ * @brief This function is called in every tests. It shows statistics of the tests
+ */
 void end_tests();
 
 #ifndef CTEST_DOC_SKIP
