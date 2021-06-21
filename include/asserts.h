@@ -437,7 +437,7 @@ void rm_begin_test();
 void on_test(header_on_cb);
 
 /**
- * @fn void rm_on_end_test()
+ * @fn void rm_on_test()
  * @brief Removes callback pointer from global _on_test_ context
  *
  * @see on_test
