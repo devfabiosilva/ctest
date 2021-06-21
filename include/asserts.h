@@ -297,11 +297,151 @@ void assert_null(void *, ...);
 void assert_not_null(void *, ...);
 #endif
 
+/**
+ * @fn void on_add_test(header_on_cb callback)
+ * @brief Call function _callback_ on adding test event
+ *
+ * - Example:
+ *
+ * ```c
+ * #include <stdio.h>
+ * #include <asserts.h>
+ * #include <string.h>
+ *
+ * void on_add_test_fn(void *context)
+ * {
+ *    // context is not used.
+ *    printf("\nOn add test event ...\n\n");
+ * }
+ *
+ * int main(int argc, char **argv)
+ * {
+ *    uint8_t vec1[] = "This is a simple text";
+ *    uint8_t *vec2 = malloc(sizeof(vec1));
+ *
+ *    memcpy(vec2, vec1, sizeof(vec1));
+ *    on_add_test(on_add_test_fn); // It will be called every add test event
+ *
+ *    C_ASSERT_NOT_EQUAL_BYTE(vec1, vec2, sizeof(vec1),
+ *        CTEST_SETTER(
+ *          CTEST_INFO("Testing if \"vec1\" (%p) is different from \"vec2\" (%p) of size %u", vec1, vec2, sizeof(vec1)),
+ *          CTEST_WARN("Warning: This should be different")
+ *       )
+ *    )
+ *
+ *    end_tests();
+ *
+ *    return 0;
+ * } 
+ * ```
+ * @see rm_on_add_test
+ */
 void on_add_test(header_on_cb);
+
+/**
+ * @fn void rm_on_add_test()
+ * @brief Removes callback pointer from global _rm_on_add_test_ context
+ *
+ * @see on_add_test
+ */
 void rm_on_add_test();
+
+/**
+ * @fn void on_begin_test(header_on_cb callback)
+ * @brief Call function _callback_ on each beginning test event
+ *
+ * - Example:
+ *
+ * ```c
+ * #include <stdio.h>
+ * #include <asserts.h>
+ * #include <string.h>
+ *
+ * void on_begin_test_fn(void *context)
+ * {
+ *    // context is not used.
+ *    printf("\nOn begin test event ...\n\n");
+ * }
+ *
+ * int main(int argc, char **argv)
+ * {
+ *    uint8_t vec1[] = "This is a simple text";
+ *    uint8_t *vec2 = malloc(sizeof(vec1));
+ *
+ *    memcpy(vec2, vec1, sizeof(vec1));
+ *    on_begin_test(on_begin_test_fn); // It will be called every begin test event
+ *
+ *    C_ASSERT_NOT_EQUAL_BYTE(vec1, vec2, sizeof(vec1),
+ *        CTEST_SETTER(
+ *          CTEST_INFO("Testing if \"vec1\" (%p) is different from \"vec2\" (%p) of size %u", vec1, vec2, sizeof(vec1)),
+ *          CTEST_WARN("Warning: This should be different")
+ *       )
+ *    )
+ *
+ *    end_tests();
+ *
+ *    return 0;
+ * } 
+ * ```
+ * @see rm_begin_test
+ */
 void on_begin_test(header_on_cb);
+
+/**
+ * @fn void rm_begin_test()
+ * @brief Removes callback pointer from global _on_begin_test_ context
+ *
+ * @see on_test
+ */
 void rm_begin_test();
+
+/**
+ * @fn void on_test(header_on_cb callback)
+ * @brief Call function _callback_ on each test event
+ *
+ * - Example:
+ *
+ * ```c
+ * #include <stdio.h>
+ * #include <asserts.h>
+ * #include <string.h>
+ *
+ * void on_test_fn(void *context)
+ * {
+ *    // context is not used.
+ *    printf("\nOn test event ...\n\n");
+ * }
+ *
+ * int main(int argc, char **argv)
+ * {
+ *    uint8_t vec1[] = "This is a simple text";
+ *    uint8_t *vec2 = malloc(sizeof(vec1));
+ *
+ *    memcpy(vec2, vec1, sizeof(vec1));
+ *    on_test(on_test_fn); // It will be called every test event
+ *
+ *    C_ASSERT_NOT_EQUAL_BYTE(vec1, vec2, sizeof(vec1),
+ *        CTEST_SETTER(
+ *          CTEST_INFO("Testing if \"vec1\" (%p) is different from \"vec2\" (%p) of size %u", vec1, vec2, sizeof(vec1)),
+ *          CTEST_WARN("Warning: This should be different")
+ *       )
+ *    )
+ *
+ *    end_tests();
+ *
+ *    return 0;
+ * } 
+ * ```
+ * @see rm_on_test
+ */
 void on_test(header_on_cb);
+
+/**
+ * @fn void rm_on_end_test()
+ * @brief Removes callback pointer from global _on_test_ context
+ *
+ * @see on_test
+ */
 void rm_on_test();
 
 /**
