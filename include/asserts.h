@@ -303,7 +303,54 @@ void on_begin_test(header_on_cb);
 void rm_begin_test();
 void on_test(header_on_cb);
 void rm_on_test();
+
+/**
+ * @fn void on_end_test(header_on_cb callback)
+ * @brief Call function _callback_ if at the end of all tests (if success)
+ *
+ * - Example:
+ *
+ * ```c
+ * #include <stdio.h>
+ * #include <asserts.h>
+ * #include <string.h>
+ *
+ * void on_end_test_fn(void *context)
+ * {
+ *    // context is not used.
+ *    printf("\nEnding tests ...\nExtra summary goes here ...\n\n");
+ * }
+ *
+ * int main(int argc, char **argv)
+ * {
+ *    uint8_t vec1[] = "This is a simple text";
+ *    uint8_t *vec2 = malloc(sizeof(vec1));
+ *
+ *    memcpy(vec2, vec1, sizeof(vec1));
+ *    on_end_test(on_end_test_fn); // It will be called if all tests finishes successfully
+ *
+ *    C_ASSERT_NOT_EQUAL_BYTE(vec1, vec2, sizeof(vec1),
+ *        CTEST_SETTER(
+ *          CTEST_INFO("Testing if \"vec1\" (%p) is different from \"vec2\" (%p) of size %u", vec1, vec2, sizeof(vec1)),
+ *          CTEST_WARN("Warning: This should be different")
+ *       )
+ *    )
+ *
+ *    end_tests(); // Function on_end_test_fn will be called here
+ *
+ *    return 0;
+ * } 
+ * ```
+ * @see rm_on_end_test
+ */
 void on_end_test(header_on_cb);
+
+/**
+ * @fn void rm_on_end_test()
+ * @brief Removes callback pointer from global _rm_on_end_test_ context
+ *
+ * @see on_end_test
+ */
 void rm_on_end_test();
 
 /**
