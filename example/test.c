@@ -106,6 +106,9 @@ int main(int argc, char **argv)
 
    C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE(name3, "Albert Einstein")
 
+   C_ASSERT_NOT_EQUAL_U8(0x01, 0x02)
+   C_ASSERT_EQUAL_U8(0xff, 0xff)
+
    end_tests();
 
    return 0;

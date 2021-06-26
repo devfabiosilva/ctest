@@ -295,6 +295,8 @@ void assert_equal_string_ignore_case(const char *, const char *, ...);
 void assert_not_equal_string_ignore_case(const char *, const char *, ...);
 void assert_null(void *, ...);
 void assert_not_null(void *, ...);
+void assert_equal_u8(uint8_t, uint8_t, ...);
+void assert_not_equal_u8(uint8_t, uint8_t, ...);
 #endif
 
 /**
@@ -829,6 +831,29 @@ void *set_varg(uint32_t, const char *, ...);
  * @see C_ASSERT_EQUAL_STRING_IGNORE_CASE
  */
 #define C_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE(expected, ...) assert_not_equal_string_ignore_case(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_EQUAL_U8(expected, result, ...)
+ * @brief Checks if expected and result value are equal
+ * @param expected Expected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_NOT_EQUAL_U8
+ */
+#define C_ASSERT_EQUAL_U8(expected, ...) assert_equal_u8(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_NOT_EQUAL_U8(unexpected, result, ...)
+ * @brief Checks if expected and result value are NOT equal
+ * @param unexpected Unexpected value
+ * @param result Result value
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * @see C_ASSERT_EQUAL_U8
+ */
+#define C_ASSERT_NOT_EQUAL_U8(expected, ...) assert_not_equal_u8(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
 #ifndef CTEST_DOC_SKIP
 #ifdef DEBUG_TEST
 // TEMPORARY FOR TESTS

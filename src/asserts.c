@@ -16,6 +16,7 @@ static void print_assert_byte(void *, void *);
 static void print_assert_double(void *, void *);
 static void print_assert_string(void *, void *);
 static void print_assert_nullable(void *, void *);
+static void print_assert_u8(void *, void *);
 static int free_vargs(void *);
 
 static void abort_tests();
@@ -78,6 +79,42 @@ typedef struct c_test_type_header_t {
    C_TEST_FN_DESCRIPTION desc;
 } C_TEST_TYPE_HEADER;
 
+// TODO IMPLEMENT THIS
+
+typedef struct c_test_type_u8_t {
+   C_TEST_TYPE_HEADER header;
+
+   uint8_t
+   expected,
+   result;
+} C_TEST_TYPE_U8;
+
+typedef struct c_test_type_s8_t {
+   C_TEST_TYPE_HEADER header;
+
+   int8_t
+   expected,
+   result;
+} C_TEST_TYPE_S8;
+
+typedef struct c_test_type_u16_t {
+   C_TEST_TYPE_HEADER header;
+
+   uint16_t
+   expected,
+   result;
+} C_TEST_TYPE_U16;
+
+typedef struct c_test_type_s16_t {
+   C_TEST_TYPE_HEADER header;
+
+   int16_t
+   expected,
+   result;
+} C_TEST_TYPE_S16;
+
+// END TODO
+
 typedef struct c_test_type_int_t {
    C_TEST_TYPE_HEADER header;
 
@@ -86,6 +123,27 @@ typedef struct c_test_type_int_t {
    result;
 } C_TEST_TYPE_INT, C_TEST_TYPE_BOOL;
 
+// TODO IMPLEMENT THIS
+
+typedef struct c_test_type_u32_t {
+   C_TEST_TYPE_HEADER header;
+
+   uint32_t
+   expected,
+   result;
+} C_TEST_TYPE_U32;
+
+typedef struct c_test_type_s32_t {
+   C_TEST_TYPE_HEADER header;
+
+   int32_t
+   expected,
+   result;
+} C_TEST_TYPE_S32;
+
+// END TODO
+
+
 typedef struct c_test_type_long_int_t {
    C_TEST_TYPE_HEADER header;
 
@@ -93,6 +151,26 @@ typedef struct c_test_type_long_int_t {
    expected,
    result;
 } C_TEST_TYPE_LONG_INT;
+
+// TODO IMPLEMENT THIS
+
+typedef struct c_test_type_s64_t {
+   C_TEST_TYPE_HEADER header;
+
+   int64_t
+   expected,
+   result;
+} C_TEST_TYPE_S64;
+
+typedef struct c_test_type_u64_t {
+   C_TEST_TYPE_HEADER header;
+
+   uint64_t
+   expected,
+   result;
+} C_TEST_TYPE_U64;
+
+// END TODO
 
 typedef struct c_test_type_double_t {
    C_TEST_TYPE_HEADER header;
@@ -178,7 +256,11 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t
 #define ASSERT_NOT_EQUAL_STRING_IGNORE_CASE "assert_not_equal_string_ignore_case"
 #define ASSERT_NULL "assert_null"
 #define ASSERT_NOT_NULL "assert_not_null"
-
+// TODO IMPLEMENT THIS
+#define ASSERT_EQUAL_U8 "assert_equal_u8"
+#define ASSERT_NOT_EQUAL_U8 "assert_not_equal_u8"
+// TODO END
+/*
 #define TYPE_ASSERT_EQUAL_INT 0
 #define TYPE_ASSERT_TRUE 1
 #define TYPE_ASSERT_FALSE 2
@@ -195,6 +277,30 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t
 #define TYPE_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE 13
 #define TYPE_ASSERT_NULL 14
 #define TYPE_ASSERT_NOT_NULL 15
+*/
+enum type_assert_e {
+   TYPE_ASSERT_EQUAL_INT=0,
+   TYPE_ASSERT_TRUE,
+   TYPE_ASSERT_FALSE,
+   TYPE_ASSERT_EQUAL_LONG_INT,
+   TYPE_ASSERT_EQUAL_DOUBLE,
+   TYPE_ASSERT_EQUAL_BYTE,
+   TYPE_ASSERT_NOT_EQUAL_INT,
+   TYPE_ASSERT_NOT_EQUAL_LONG_INT,
+   TYPE_ASSERT_NOT_EQUAL_DOUBLE,
+   TYPE_ASSERT_NOT_EQUAL_BYTE,
+   TYPE_ASSERT_EQUAL_STRING,
+   TYPE_ASSERT_NOT_EQUAL_STRING,
+   TYPE_ASSERT_EQUAL_STRING_IGNORE_CASE,
+   TYPE_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE,
+   TYPE_ASSERT_NULL,
+   TYPE_ASSERT_NOT_NULL,
+// TODO IMPLEMENT THIS
+   TYPE_ASSERT_EQUAL_U8,
+   TYPE_ASSERT_NOT_EQUAL_U8
+// TODO END
+};
+
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {TYPE_ASSERT_EQUAL_INT, ASSERT_EQ_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_int},
    {TYPE_ASSERT_TRUE, ASSERT_TRUE_FN, sizeof(C_TEST_TYPE_BOOL), print_assert_int},
@@ -203,7 +309,7 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {TYPE_ASSERT_EQUAL_DOUBLE, ASSERT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_double},
    {TYPE_ASSERT_EQUAL_BYTE, ASSERT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_byte},
    {TYPE_ASSERT_NOT_EQUAL_INT, ASSERT_NOT_EQUAL_INT_FN, sizeof(C_TEST_TYPE_INT), print_assert_int},
-   {TYPE_TYPE_ASSERT_NOT_EQUAL_LONG_INT, ASSERT_NOT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_longint},
+   {TYPE_ASSERT_NOT_EQUAL_LONG_INT, ASSERT_NOT_EQUAL_LONG_INT, sizeof(C_TEST_TYPE_LONG_INT), print_assert_longint},
    {TYPE_ASSERT_NOT_EQUAL_DOUBLE, ASSERT_NOT_EQUAL_DOUBLE, sizeof(C_TEST_TYPE_DOUBLE), print_assert_double},
    {TYPE_ASSERT_NOT_EQUAL_BYTE, ASSERT_NOT_EQUAL_BYTE, sizeof(C_TEST_TYPE_BYTE), print_assert_byte},
    {TYPE_ASSERT_EQUAL_STRING, ASSERT_EQUAL_STRING, sizeof(C_TEST_TYPE_STRING), print_assert_string},
@@ -211,7 +317,11 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {TYPE_ASSERT_EQUAL_STRING_IGNORE_CASE, ASSERT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_string},
    {TYPE_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE, ASSERT_NOT_EQUAL_STRING_IGNORE_CASE, sizeof(C_TEST_TYPE_STRING), print_assert_string},
    {TYPE_ASSERT_NULL, ASSERT_NULL, sizeof(C_TEST_TYPE_NULLABLE), print_assert_nullable},
-   {TYPE_ASSERT_NOT_NULL, ASSERT_NOT_NULL, sizeof(C_TEST_TYPE_NULLABLE), print_assert_nullable}
+   {TYPE_ASSERT_NOT_NULL, ASSERT_NOT_NULL, sizeof(C_TEST_TYPE_NULLABLE), print_assert_nullable},
+// TODO IMPLEMENT THIS
+   {TYPE_ASSERT_EQUAL_U8, ASSERT_EQUAL_U8, sizeof(C_TEST_TYPE_U8), print_assert_u8},
+   {TYPE_ASSERT_NOT_EQUAL_U8, ASSERT_NOT_EQUAL_U8, sizeof(C_TEST_TYPE_U8), print_assert_u8}
+// TODO END
 };
 
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT _tst_fn_desc[TYPE_ASSERT_EQUAL_INT]
@@ -221,7 +331,7 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_DOUBLE _tst_fn_desc[TYPE_ASSERT_EQUAL_DOUBLE]
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_BYTE _tst_fn_desc[TYPE_ASSERT_EQUAL_BYTE]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_INT _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_INT]
-#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_LONG_INT _tst_fn_desc[TYPE_TYPE_ASSERT_NOT_EQUAL_LONG_INT]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_LONG_INT _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_LONG_INT]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_DOUBLE _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_DOUBLE]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_BYTE _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_BYTE]
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_STRING _tst_fn_desc[TYPE_ASSERT_EQUAL_STRING]
@@ -230,6 +340,10 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_STRING_IGNORE_CASE _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_STRING_IGNORE_CASE]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NULL _tst_fn_desc[TYPE_ASSERT_NULL]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_NULL _tst_fn_desc[TYPE_ASSERT_NOT_NULL]
+// TODO IMPLEMENT THIS
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_U8 _tst_fn_desc[TYPE_ASSERT_EQUAL_U8]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_U8 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_U8]
+// END TODO
 
 typedef union c_test_fn {
    C_TEST_FN_META meta;
@@ -1213,7 +1327,7 @@ static void print_assert_longint(void *ctx, void *vas)
    error=(type->expected!=type->result);
 
    idx=0;
-   if (type->header.desc.type==TYPE_TYPE_ASSERT_NOT_EQUAL_LONG_INT) {
+   if (type->header.desc.type==TYPE_ASSERT_NOT_EQUAL_LONG_INT) {
       error=!error;
       idx=1;
    }
@@ -1474,6 +1588,60 @@ static void print_assert_nullable(void *ctx, void *vas)
    free_vargs(vas);
 
    SUCCESS_MSG_FMT(print_assert_byte_msg[idx][0], type->header.desc.fn_name, (type->pointer)?(type->pointer):"NULL")
+}
+
+static void print_assert_u8(void *ctx, void *vas)
+{
+   C_TEST_TYPE_U8 *type=(C_TEST_TYPE_U8 *)ctx;
+   int error, idx, p_sz;
+   char *p;
+
+   const char *print_assert_long_u8[][2] = {
+      {"\"%s\". Expected %u (0x%02x) == result %u (0x%02x) -> ok", "\"%s\". Expected %u (0x%02x), but found %u (0x%02x) -> fail"},
+      {"\"%s\". Unexpected %u (0x%02x) != result %u (0x%02x) -> ok", "\"%s\". Unexpected %u (%02x) == result %u (0x%02x) -> fail"}
+   };
+
+   PRINT_CALLBACK
+
+   error=(type->expected!=type->result);
+
+   idx=0;
+   if (type->header.desc.type==TYPE_ASSERT_NOT_EQUAL_U8) {
+      error=!error;
+      idx=1;
+   }
+
+   SHOW_USER_NOTIFICATION
+
+   if (error) {
+      CALLBACK_ON_ERROR
+
+      if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
+         ERROR_MSG_FMT("%.*s", p_sz, p)
+
+      free_vargs(vas);
+
+      ERROR_MSG_FMT(print_assert_long_u8[idx][1],
+         type->header.desc.fn_name,
+         (unsigned int)type->expected, type->expected,
+         (unsigned int)type->result, type->result
+      )
+
+      abort_tests();
+   }
+
+   CALLBACK_ON_SUCCESS
+
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_SUCCESS)))
+      SUCCESS_MSG_FMT("%.*s", p_sz, p)
+
+   free_vargs(vas);
+
+   SUCCESS_MSG_FMT(print_assert_long_u8[idx][0],
+      type->header.desc.fn_name,
+      (unsigned int)type->expected, type->expected,
+      (unsigned int)type->result, type->result
+   )
 }
 
 static void add_test(void *ctx, void *vas)
@@ -1894,7 +2062,46 @@ void assert_not_null(void *result, ...)
 
    assert_nullable(result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_NULL, vas);
 }
+// TODO IMPLEMENT THIS
+static void assert_u8(uint8_t expected, uint8_t result, C_TEST_FN_DESCRIPTION *desc, void *vas)
+{
+   static C_TEST_TYPE_U8 type;
 
+   memcpy(&type.header.desc, desc, sizeof(type.header.desc));
+   ASSERT_PRELOAD
+   TEST_BEGIN
+}
+
+void assert_equal_u8(uint8_t expected, uint8_t result, ...)
+{
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_EQUAL_U8")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   assert_u8(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_U8, vas);
+}
+
+void assert_not_equal_u8(uint8_t expected, uint8_t result, ...)
+{
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_NOT_EQUAL_U8")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   assert_u8(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_U8, vas);
+}
+// END TODO
 uint64_t *get_va_end_signature()
 {
    static uint64_t va_end_signature_u64=0x00000000df3f6198;
