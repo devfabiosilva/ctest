@@ -19,6 +19,7 @@ static void print_assert_nullable(void *, void *);
 static void print_assert_u8(void *, void *);
 static void print_assert_s8(void *, void *);
 static void print_assert_u16(void *, void *);
+static void print_assert_s16(void *, void *);
 static int free_vargs(void *);
 
 static void abort_tests();
@@ -89,7 +90,6 @@ typedef struct c_test_type_u8_t {
    result;
 } C_TEST_TYPE_U8;
 
-// TODO IMPLEMENT THIS
 typedef struct c_test_type_s8_t {
    C_TEST_TYPE_HEADER header;
 
@@ -113,8 +113,6 @@ typedef struct c_test_type_s16_t {
    expected,
    result;
 } C_TEST_TYPE_S16;
-
-// END TODO
 
 typedef struct c_test_type_int_t {
    C_TEST_TYPE_HEADER header;
@@ -261,9 +259,11 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t
 #define ASSERT_NOT_EQUAL_U8 "assert_not_equal_u8"
 #define ASSERT_EQUAL_S8 "assert_equal_s8"
 #define ASSERT_NOT_EQUAL_S8 "assert_not_equal_s8"
-// TODO IMPLEMENT THIS
 #define ASSERT_EQUAL_U16 "assert_equal_u16"
 #define ASSERT_NOT_EQUAL_U16 "assert_not_equal_u16"
+// TODO IMPLEMENT THIS
+#define ASSERT_EQUAL_S16 "assert_equal_s16"
+#define ASSERT_NOT_EQUAL_S16 "assert_not_equal_s16"
 // TODO END
 
 enum type_assert_e {
@@ -287,9 +287,11 @@ enum type_assert_e {
    TYPE_ASSERT_NOT_EQUAL_U8,
    TYPE_ASSERT_EQUAL_S8,
    TYPE_ASSERT_NOT_EQUAL_S8,
-// TODO IMPLEMENT THIS
    TYPE_ASSERT_EQUAL_U16,
-   TYPE_ASSERT_NOT_EQUAL_U16
+   TYPE_ASSERT_NOT_EQUAL_U16,
+// TODO IMPLEMENT THIS
+   TYPE_ASSERT_EQUAL_S16,
+   TYPE_ASSERT_NOT_EQUAL_S16
 // TODO END
 };
 
@@ -314,9 +316,11 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {TYPE_ASSERT_NOT_EQUAL_U8, ASSERT_NOT_EQUAL_U8, sizeof(C_TEST_TYPE_U8), print_assert_u8},
    {TYPE_ASSERT_EQUAL_S8, ASSERT_EQUAL_S8, sizeof(C_TEST_TYPE_S8), print_assert_s8},
    {TYPE_ASSERT_NOT_EQUAL_S8, ASSERT_NOT_EQUAL_S8, sizeof(C_TEST_TYPE_S8), print_assert_s8},
-// TODO IMPLEMENT THIS
    {TYPE_ASSERT_EQUAL_U16, ASSERT_EQUAL_U16, sizeof(C_TEST_TYPE_U16), print_assert_u16},
    {TYPE_ASSERT_NOT_EQUAL_U16, ASSERT_NOT_EQUAL_U16, sizeof(C_TEST_TYPE_U16), print_assert_u16},
+// TODO IMPLEMENT THIS
+   {TYPE_ASSERT_EQUAL_S16, ASSERT_EQUAL_S16, sizeof(C_TEST_TYPE_S16), print_assert_s16},
+   {TYPE_ASSERT_NOT_EQUAL_S16, ASSERT_NOT_EQUAL_S16, sizeof(C_TEST_TYPE_S16), print_assert_s16}
 // TODO END
 };
 
@@ -340,9 +344,11 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_U8 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_U8]
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_S8 _tst_fn_desc[TYPE_ASSERT_EQUAL_S8]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_S8 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_S8]
-// TODO IMPLEMENT THIS
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_U16 _tst_fn_desc[TYPE_ASSERT_EQUAL_U16]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_U16 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_U16]
+// TODO IMPLEMENT THIS
+#define C_TEST_FN_DESCRIPTION_ASSERT_EQ_S16 _tst_fn_desc[TYPE_ASSERT_EQUAL_S16]
+#define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_S16 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_S16]
 // END TODO
 
 typedef union c_test_fn {
@@ -356,7 +362,8 @@ typedef union c_test_fn {
    C_TEST_TYPE_NULLABLE tst_eq_null;
    C_TEST_TYPE_U8 tst_eq_u8;
    C_TEST_TYPE_S8 tst_eq_s8;
-   C_TEST_TYPE_U16 tst_eq_s16;
+   C_TEST_TYPE_U16 tst_eq_u16;
+   C_TEST_TYPE_S16 tst_eq_s16;
 } C_TEST_FN;
 
 #define PRINTF_FINAL_FMT printf("%.*s", err, msg);
@@ -1755,6 +1762,60 @@ static void print_assert_u16(void *ctx, void *vas)
    )
 }
 
+static void print_assert_s16(void *ctx, void *vas)
+{
+   C_TEST_TYPE_S16 *type=(C_TEST_TYPE_S16 *)ctx;
+   int error, idx, p_sz;
+   char *p;
+
+   const char *print_assert_s16[][2] = {
+      {"\"%s\". Expected %d (0x%04x) == result %d (0x%04x) -> ok", "\"%s\". Expected %d (0x%04x), but found %d (0x%04x) -> fail"},
+      {"\"%s\". Unexpected %d (0x%04x) != result %d (0x%04x) -> ok", "\"%s\". Unexpected %u (%04x) == result %d (0x%04x) -> fail"}
+   };
+
+   PRINT_CALLBACK
+
+   error=(type->expected!=type->result);
+
+   idx=0;
+   if (type->header.desc.type==TYPE_ASSERT_NOT_EQUAL_S16) {
+      error=!error;
+      idx=1;
+   }
+
+   SHOW_USER_NOTIFICATION
+
+   if (error) {
+      CALLBACK_ON_ERROR
+
+      if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
+         ERROR_MSG_FMT("%.*s", p_sz, p)
+
+      free_vargs(vas);
+
+      ERROR_MSG_FMT(print_assert_s16[idx][1],
+         type->header.desc.fn_name,
+         (signed int)type->expected, type->expected&0xFFFF,
+         (signed int)type->result, type->result&0xFFFF
+      )
+
+      abort_tests();
+   }
+
+   CALLBACK_ON_SUCCESS
+
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_SUCCESS)))
+      SUCCESS_MSG_FMT("%.*s", p_sz, p)
+
+   free_vargs(vas);
+
+   SUCCESS_MSG_FMT(print_assert_s16[idx][0],
+      type->header.desc.fn_name,
+      (signed int)type->expected, type->expected&0xFFFF,
+      (signed int)type->result, type->result&0xFFFF
+   )
+}
+
 static void add_test(void *ctx, void *vas)
 {
    int err;
@@ -2252,7 +2313,6 @@ void assert_not_equal_s8(int8_t expected, int8_t result, ...)
    assert_s8(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_S8, vas);
 }
 
-// TODO IMPLEMENT THIS
 static void assert_u16(uint16_t expected, uint16_t result, C_TEST_FN_DESCRIPTION *desc, void *vas)
 {
    static C_TEST_TYPE_U16 type;
@@ -2291,7 +2351,48 @@ void assert_not_equal_u16(uint16_t expected, uint16_t result, ...)
 
    assert_u16(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_U16, vas);
 }
+
+// TODO IMPLEMENT THIS
+static void assert_s16(int16_t expected, int16_t result, C_TEST_FN_DESCRIPTION *desc, void *vas)
+{
+   static C_TEST_TYPE_S16 type;
+
+   memcpy(&type.header.desc, desc, sizeof(type.header.desc));
+   ASSERT_PRELOAD
+   TEST_BEGIN
+}
+
+void assert_equal_s16(int16_t expected, int16_t result, ...)
+{
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_EQUAL_S16")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   assert_s16(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_EQ_S16, vas);
+}
+
+void assert_not_equal_s16(int16_t expected, int16_t result, ...)
+{
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_NOT_EQUAL_S16")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   assert_s16(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_S16, vas);
+}
 // END TODO
+
 uint64_t *get_va_end_signature()
 {
    static uint64_t va_end_signature_u64=0x00000000df3f6198;
