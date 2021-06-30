@@ -118,6 +118,9 @@ int main(int argc, char **argv)
    C_ASSERT_NOT_EQUAL_S16(0x0002, 0x0004)
    C_ASSERT_EQUAL_S16(0xffff, 0xffff)
 
+   C_ASSERT_NOT_EQUAL_U32(0x0002, 0x0004)
+   C_ASSERT_EQUAL_U32(0xffffffff, 0xffffffff)
+
    end_tests();
 
    return 0;
