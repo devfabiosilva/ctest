@@ -121,6 +121,15 @@ int main(int argc, char **argv)
    C_ASSERT_NOT_EQUAL_U32(0x0002, 0x0004)
    C_ASSERT_EQUAL_U32(0xffffffff, 0xffffffff)
 
+   C_ASSERT_NOT_EQUAL_S32(0x0002, 0x0004)
+   C_ASSERT_EQUAL_S32(0xffffffff, 0xffffffff)
+
+   C_ASSERT_NOT_EQUAL_U64(0x0002, 0x0004)
+   C_ASSERT_EQUAL_U64(0xffffffffffffffff, 0xffffffffffffffff)
+
+   C_ASSERT_NOT_EQUAL_S64(0x0002, 0x0004)
+   C_ASSERT_EQUAL_S64(0xffffffffffffffff, 0xffffffffffffffff)
+
    end_tests();
 
    return 0;
