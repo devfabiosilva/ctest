@@ -15,6 +15,7 @@ var asserts_8h =
     [ "C_ASSERT_EQUAL_U64", "da/d96/asserts_8h.html#ab800b42a86f0b165d422bc9e13550193", null ],
     [ "C_ASSERT_EQUAL_U8", "da/d96/asserts_8h.html#a2fb45dd8c79e69edf18dec26c65f806c", null ],
     [ "C_ASSERT_EQUAL_UNSIGNED_LONG_INT", "da/d96/asserts_8h.html#af373278e9219d5759a9ad60d9cd8b972", null ],
+    [ "C_ASSERT_FAIL", "da/d96/asserts_8h.html#a120794452a032124225eab112e4b2d55", null ],
     [ "C_ASSERT_FALSE", "da/d96/asserts_8h.html#a4023a3eb764ca549e95670f43b947bd9", null ],
     [ "C_ASSERT_NOT_EQUAL_BYTE", "da/d96/asserts_8h.html#a95e2ee13accf46087869e777e19307f1", null ],
     [ "C_ASSERT_NOT_EQUAL_DOUBLE", "da/d96/asserts_8h.html#a6f1f1d2dccd0b299360a745ab550901e", null ],

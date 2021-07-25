@@ -133,6 +133,15 @@ int main(int argc, char **argv)
    C_ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT(0x000000000000002, 0x000000000000004)
    C_ASSERT_EQUAL_UNSIGNED_LONG_INT(0xffffffffffffffff, 0xffffffffffffffff)
 
+   #ifdef TEST_ASSERT_FAIL
+   C_ASSERT_FAIL(NULL,
+      CTEST_SETTER(
+         CTEST_INFO("Information fail"),
+         CTEST_WARN("Warning: This should fail")
+      )
+   )
+   printf("Never reaches here");
+   #endif
    end_tests();
 
    return 0;

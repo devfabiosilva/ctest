@@ -313,6 +313,7 @@ void assert_equal_u64(uint64_t, uint64_t, ...);
 void assert_not_equal_u64(uint64_t, uint64_t, ...);
 void assert_equal_s64(int64_t, int64_t, ...);
 void assert_not_equal_s64(int64_t, int64_t, ...);
+void assert_fail(void *, ...);
 #endif
 
 /**
@@ -1045,6 +1046,36 @@ void *set_varg(uint32_t, const char *, ...);
  * @see C_ASSERT_EQUAL_S64
  */
 #define C_ASSERT_NOT_EQUAL_S64(expected, ...) assert_not_equal_s64(expected, __VA_ARGS__, VAS_END_SIGNATURE);
+
+/**
+ * @def C_ASSERT_FAIL(...)
+ * @brief Fails on execution
+ * @param ... Optional. See CTEST_SETTER() for details
+ *
+ * - Example:
+ *
+ * ```c
+ * #include <stdio.h>
+ * #include <asserts.h>
+ * #include <string.h>
+ *
+ * int main(int argc, char **argv)
+ * {
+ *    C_ASSERT_FAIL(NULL,
+ *       CTEST_SETTER(
+ *          CTEST_INFO("Information fail"),
+ *          CTEST_WARN("Warning: This should fail")
+ *       )
+ *    )
+ *    printf("Never reaches here");
+ *
+ *    end_tests();
+ *
+ *    return 0;
+ * } 
+ * ```
+ */
+#define C_ASSERT_FAIL(...) assert_fail(__VA_ARGS__, VAS_END_SIGNATURE);
 
 #ifndef CTEST_DOC_SKIP
 #ifdef DEBUG_TEST

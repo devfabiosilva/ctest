@@ -15,6 +15,7 @@ var searchData=
   ['c_5fassert_5fequal_5fu64',['C_ASSERT_EQUAL_U64',['../da/d96/asserts_8h.html#ab800b42a86f0b165d422bc9e13550193',1,'asserts.h']]],
   ['c_5fassert_5fequal_5fu8',['C_ASSERT_EQUAL_U8',['../da/d96/asserts_8h.html#a2fb45dd8c79e69edf18dec26c65f806c',1,'asserts.h']]],
   ['c_5fassert_5fequal_5funsigned_5flong_5fint',['C_ASSERT_EQUAL_UNSIGNED_LONG_INT',['../da/d96/asserts_8h.html#af373278e9219d5759a9ad60d9cd8b972',1,'asserts.h']]],
+  ['c_5fassert_5ffail',['C_ASSERT_FAIL',['../da/d96/asserts_8h.html#a120794452a032124225eab112e4b2d55',1,'asserts.h']]],
   ['c_5fassert_5ffalse',['C_ASSERT_FALSE',['../da/d96/asserts_8h.html#a4023a3eb764ca549e95670f43b947bd9',1,'asserts.h']]],
   ['c_5fassert_5fnot_5fequal_5fbyte',['C_ASSERT_NOT_EQUAL_BYTE',['../da/d96/asserts_8h.html#a95e2ee13accf46087869e777e19307f1',1,'asserts.h']]],
   ['c_5fassert_5fnot_5fequal_5fdouble',['C_ASSERT_NOT_EQUAL_DOUBLE',['../da/d96/asserts_8h.html#a6f1f1d2dccd0b299360a745ab550901e',1,'asserts.h']]],

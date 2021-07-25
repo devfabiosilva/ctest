@@ -25,6 +25,7 @@ static void print_assert_u32(void *, void *);
 static void print_assert_s32(void *, void *);
 static void print_assert_u64(void *, void *);
 static void print_assert_s64(void *, void *);
+static void print_assert_fail(void *, void *);
 static int free_vargs(void *);
 
 static void abort_tests();
@@ -209,8 +210,8 @@ typedef struct c_test_type_nullable_t {
 
    void
    *pointer;
-
-} C_TEST_TYPE_NULLABLE;
+//TODO
+} C_TEST_TYPE_NULLABLE, C_TEST_TYPE_FAIL;
 
 #define C_TEST_VARGS_SETTER (uint32_t)(0x043E4992)
 #define C_TEST_VARGS_SETTER_CHK_SUM (uint32_t)(0x1bc1eeb8)
@@ -278,6 +279,8 @@ static C_TEST_VARGS_MSG *check_vargs_sigmsg_exists(C_TEST_VARGS_MSG **, uint32_t
 #define ASSERT_NOT_EQUAL_U64 "assert_not_equal_u64"
 #define ASSERT_EQUAL_S64 "assert_equal_s64"
 #define ASSERT_NOT_EQUAL_S64 "assert_not_equal_s64"
+// TODO
+#define ASSERT_FAIL "assert_fail"
 
 enum type_assert_e {
    TYPE_ASSERT_EQUAL_INT=0,
@@ -313,7 +316,9 @@ enum type_assert_e {
    TYPE_ASSERT_EQUAL_S64,
    TYPE_ASSERT_NOT_EQUAL_S64,
    TYPE_ASSERT_EQUAL_UNSIGNED_LONG_INT,
-   TYPE_ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT
+   TYPE_ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT,
+   //TODO
+   TYPE_ASSERT_FAIL
 };
 
 static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
@@ -350,7 +355,8 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
    {TYPE_ASSERT_EQUAL_S64, ASSERT_EQUAL_S64, sizeof(C_TEST_TYPE_S64), print_assert_s64},
    {TYPE_ASSERT_NOT_EQUAL_S64, ASSERT_NOT_EQUAL_S64, sizeof(C_TEST_TYPE_S64), print_assert_s64},
    {TYPE_ASSERT_EQUAL_UNSIGNED_LONG_INT, ASSERT_EQUAL_UNSIGNED_LONG_INT, sizeof(C_TEST_TYPE_UNSIGNED_LONG_INT), print_assert_unsigned_longint},
-   {TYPE_ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT, ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT, sizeof(C_TEST_TYPE_UNSIGNED_LONG_INT), print_assert_unsigned_longint}
+   {TYPE_ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT, ASSERT_NOT_EQUAL_UNSIGNED_LONG_INT, sizeof(C_TEST_TYPE_UNSIGNED_LONG_INT), print_assert_unsigned_longint},
+   {TYPE_ASSERT_FAIL, ASSERT_FAIL, sizeof(C_TEST_TYPE_FAIL), print_assert_fail}
 };
 
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_INT _tst_fn_desc[TYPE_ASSERT_EQUAL_INT]
@@ -387,6 +393,8 @@ static C_TEST_FN_DESCRIPTION _tst_fn_desc[] = {
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_U64 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_U64]
 #define C_TEST_FN_DESCRIPTION_ASSERT_EQ_S64 _tst_fn_desc[TYPE_ASSERT_EQUAL_S64]
 #define C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_S64 _tst_fn_desc[TYPE_ASSERT_NOT_EQUAL_S64]
+//TODO
+#define C_TEST_FN_DESCRIPTION_ASSERT_FAIL _tst_fn_desc[TYPE_ASSERT_FAIL]
 
 typedef union c_test_fn {
    C_TEST_FN_META meta;
@@ -406,6 +414,8 @@ typedef union c_test_fn {
    C_TEST_TYPE_U64 tst_eq_u64;
    C_TEST_TYPE_S64 tst_eq_s64;
    C_TEST_TYPE_UNSIGNED_LONG_INT tst_eq_unsigned_longint;
+   //TODO
+   C_TEST_TYPE_FAIL tst_fail;
 } C_TEST_FN;
 
 #define PRINTF_FINAL_FMT printf("%.*s", err, msg);
@@ -2130,6 +2140,28 @@ static void print_assert_s64(void *ctx, void *vas)
    )
 }
 
+static void print_assert_fail(void *ctx, void *vas)
+{
+   // TODO
+   int p_sz;
+   char *p;
+   C_TEST_TYPE_FAIL *type=(C_TEST_TYPE_FAIL *)ctx;
+
+   PRINT_CALLBACK
+   SHOW_USER_NOTIFICATION
+   CALLBACK_ON_ERROR
+
+   if ((p=parse_vas_msg(&p_sz, vas, C_TEST_VARGS_ERROR)))
+      ERROR_MSG_FMT("%.*s", p_sz, p)
+
+   ERROR_MSG_FMT("\"%s\". Fail",
+      type->header.desc.fn_name
+   )
+
+   free_vargs(vas);
+   abort_tests();
+}
+
 static void add_test(void *ctx, void *vas)
 {
    int err;
@@ -2898,6 +2930,25 @@ void assert_not_equal_s64(int64_t expected, int64_t result, ...)
    va_end(va);
 
    assert_s64(expected, result, &C_TEST_FN_DESCRIPTION_ASSERT_NOT_EQ_S64, vas);
+}
+
+//TODO
+void assert_fail(void *result, ...)
+{
+   static C_TEST_TYPE_FAIL type;
+   void *vas;
+   va_list va;
+
+   va_start(va, result);
+   if (assert_warning_util(&vas, (void *)va_arg(va, void *), "C_ASSERT_FAIL")) {
+      va_end(va);
+      abort_tests();
+   }
+   va_end(va);
+
+   memcpy(&type.header.desc, &C_TEST_FN_DESCRIPTION_ASSERT_FAIL, sizeof(type.header.desc));
+   type.pointer=result;
+   TEST_BEGIN
 }
 
 uint64_t *get_va_end_signature()
