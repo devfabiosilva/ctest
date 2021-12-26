@@ -628,6 +628,7 @@ void on_add_test(header_on_cb fn)
       C_TEST_ON_TEST_FN(NULL)
       C_TEST_ON_END_FN(NULL)
       C_TEST_ON_ABORT_FN(NULL)
+      C_TEST_ON_ADD_FN(NULL)
 
    }
 
@@ -678,6 +679,7 @@ void on_begin_test(header_on_cb fn)
       C_TEST_ON_TEST_FN(NULL)
       C_TEST_ON_END_FN(NULL)
       C_TEST_ON_ABORT_FN(NULL)
+      C_TEST_ON_BEGIN_FN(NULL)
 
    }
 
@@ -726,6 +728,7 @@ void on_test(header_on_cb fn)
       C_TEST_ON_BEGIN_FN(NULL)
       C_TEST_ON_END_FN(NULL)
       C_TEST_ON_ABORT_FN(NULL)
+      C_TEST_ON_TEST_FN(NULL)
 
    }
 
@@ -774,6 +777,7 @@ void on_end_test(header_on_cb fn)
       C_TEST_ON_TEST_FN(NULL)
       C_TEST_ON_BEGIN_FN(NULL)
       C_TEST_ON_ABORT_FN(NULL)
+      C_TEST_ON_END_FN(NULL)
 
    }
 
@@ -822,6 +826,7 @@ void on_abort(header_on_cb fn)
       C_TEST_ON_TEST_FN(NULL)
       C_TEST_ON_BEGIN_FN(NULL)
       C_TEST_ON_END_FN(NULL)
+      C_TEST_ON_ABORT_FN(NULL)
 
    }
 

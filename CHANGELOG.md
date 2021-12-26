@@ -1,9 +1,12 @@
 # Changelog
 CTEST changelogs
 
-## [master] - 2021-07-25
+## [master] - 2021-12-25
+
+## [0.1.2] - 2021-12-25
 ## Added
-- Adding assert fail
+- Adding assert fail (2021-07-25)
+- Removing on events warnings. Add initializer to pointer (2021-12-25)
 
 ## [0.1.1] - 2021-07-04
 ## Added
@@ -17,4 +20,5 @@ CTEST changelogs
 
 [0.1.0]: https://github.com/devfabiosilva/ctest/tree/v0.1.0
 [0.1.1]: https://github.com/devfabiosilva/ctest/tree/v0.1.1
+[0.1.2]: https://github.com/devfabiosilva/ctest/tree/v0.1.2
 [master]: https://github.com/devfabiosilva/ctest
